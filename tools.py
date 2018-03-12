@@ -47,20 +47,25 @@ def log_integral_exp( log_func, theta, critical_points, x_lbound, x_ubound ):
         theta = theta[-1,:]
     theta = theta.reshape([-1,])
     d = theta.size - 1
-    derivative_poly_coeffs = np.flip(theta[1:] * np.arange(1,d), axis=0)
-    
+    derivative_poly_coeffs = np.flip(theta[1:] * np.arange(1,d+1), axis=0)
+        
     r = np.roots(derivative_poly_coeffs)
     r = r.real[r.imag < 1e-10]
-    r = r[r >= x_lbound & r <= x_ubound]
+    r = r[ (r >= x_lbound) and (r <= x_ubound)]
+    
     
     if critical_points == None:
         critical_points = r
     elif critical_points.shape[0] == 0:
         critical_points = r
     else:
-        critical_points = np.unique(np.concatenate[critical_points, r])
+        if r.size > 0:
+            critical_points = np.unique(np.concatenate[critical_points, r])
     
-    br_points = np.unique(np.concatenate([x_lbound, critical_points, x_ubound]))
+    if critical_points.size > 0:    
+        br_points = np.unique(np.concatenate([x_lbound, critical_points, x_ubound]))
+    else:
+        br_points = np.array([x_lbound, x_ubound])
     
     buff = np.zeros( [br_points.size -1,]);
     for i in range(br_points.size - 1):
@@ -68,11 +73,11 @@ def log_integral_exp( log_func, theta, critical_points, x_lbound, x_ubound ):
         p2 = br_points[i+1]
         l = p2 - p1
         parts = 200
-        points = np.arange(p1,p2,l/parts)
+        points = np.arange(p1,p2+1e-10,l/parts)
         
         f = log_func(points, theta)
-        
         f = np.concatenate( [ f, f[1:-1] ] )
+
         buff[i] = log_sum_exp(f) + np.log(l/parts) - np.log(2)
     
     return log_sum_exp(buff);

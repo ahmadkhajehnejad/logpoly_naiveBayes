@@ -1,3 +1,4 @@
+import config
 import numpy as np
 
 def log_sum_exp(a, axis=0, keepdims=False):
@@ -12,37 +13,38 @@ def log_sum_exp(a, axis=0, keepdims=False):
 def compute_poly(x, theta):
     if len(theta.shape) == 1:
         theta = theta.reshape([1,-1])
-    d = theta.shape[1] - 1
-    k = theta.shape[0]
+    k = theta.shape[1] - 1
+    t = theta.shape[0]
     n = x.size
     
     theta3d = np.tile(np.expand_dims(theta,2), [1,1,n])
-    x3d = np.tile(x.reshape([1,1,n]), [k,d+1,1])
-    exp3d = np.tile(np.arange(d+1).reshape([1,d+1,1]),[k,1,n])
+    x3d = np.tile(x.reshape([1,1,n]), [t,k+1,1])
+    exp3d = np.tile(np.arange(k+1).reshape([1,k+1,1]),[t,1,n])
     
     return np.prod(np.sum( (x3d ** exp3d) * theta3d, axis=1), axis=0)
 
 
-def compute_SS(x, theta, d=None):
+def compute_SS(x, theta=None):
 
     n = x.size
+    k = config.factor_degree
     
     if theta == None:
         p = np.ones([n,])
     elif theta.shape[0] == 0:
         p = np.ones([n,1])
     else:
-        d = theta.shape[1] - 1
         p = compute_poly(x, theta)
                 
-    exponent = np.tile(np.arange(d+1).reshape([1,-1]), [n,1])
-    base = np.tile(x.reshape([-1,1]), [1,d+1])
-    coef = np.tile(p.reshape([-1,1]), [1,d+1])
+    exponent = np.tile(np.arange(k+1).reshape([1,-1]), [n,1])
+    base = np.tile(x.reshape([-1,1]), [1,k+1])
+    coef = np.tile(p.reshape([-1,1]), [1,k+1])
     
     return np.sum( (base ** exponent) * coef , axis=0)
 
 
-def log_integral_exp( log_func, theta, critical_points, x_lbound, x_ubound ):
+def log_integral_exp( log_func, theta, critical_points):
+    x_lbound, x_ubound = config.x_lbound, config.x_ubound
     if len(theta.shape) > 1:
         theta = theta[-1,:]
     theta = theta.reshape([-1,])
@@ -82,11 +84,11 @@ def log_integral_exp( log_func, theta, critical_points, x_lbound, x_ubound ):
     
     return log_sum_exp(buff);
     
-def compute_log_likelihood(SS, theta, previous_critical_points, n, x_lbound, x_ubound, return_logZ=False):
+def compute_log_likelihood(SS, theta, previous_critical_points, n, return_logZ=False):
     if len(theta.shape) > 1:
         theta = theta[-1,:]
     
-    logZ = log_integral_exp( compute_poly, theta, previous_critical_points, x_lbound, x_ubound)
+    logZ = log_integral_exp( compute_poly, theta, previous_critical_points)
     
     ll = -n*logZ + np.inner(theta.reshape([-1,]), SS.reshape([-1,]))
     

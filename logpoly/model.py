@@ -41,21 +41,21 @@ class Logpoly:
         for iteration in range(config.logpoly.Newtor_max_iter):
             
             ## Compute sufficient statistics and constructing the gradient and the Hessian
-            ESS = np.zeros([k,]);
+            ESS = np.zeros([k+1,]);
             logZ = log_integral_exp(compute_poly, np.concatenate([theta.reshape([-1,k+1]), theta_new.reshape([1,-1])]), critical_points)
             
             for j in range(k+1):
                 def func(x):
                     return compute_poly(x, theta) * (x ** j) * np.exp(compute_poly(x,theta_new) - logZ)
                 
-                ESS[j] = integrate.quad(func, config.logpoly.x_lbound, config.logpoly.x_ubound)
+                ESS[j],_ = integrate.quad(func, config.logpoly.x_lbound, config.logpoly.x_ubound)
     
             tmp = np.concatenate([ ESS, np.zeros(k)])
             for j in range(k+1,2*k+1):
                 def func(x):
                     return (compute_poly(x, theta)**2) * (x ** j) * np.exp(compute_poly(x,theta_new) - logZ)
                 
-                tmp[j] = integrate.quad(func, config.logpoly.x_lbound, config.logpoly.x_ubound)
+                tmp[j],_ = integrate.quad(func, config.logpoly.x_lbound, config.logpoly.x_ubound)
                 
             H = np.zeros([k+1,k+1])
             for i in range(k+1):

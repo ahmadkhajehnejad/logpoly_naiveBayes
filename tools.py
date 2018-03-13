@@ -43,7 +43,7 @@ def compute_SS(x, theta=None):
     return np.sum( (base ** exponent) * coef , axis=0)
 
 
-def log_integral_exp( log_func, theta, critical_points):
+def log_integral_exp( log_func, theta, critical_points, return_new_critical_points=False):
     x_lbound, x_ubound = config.x_lbound, config.x_ubound
     if len(theta.shape) > 1:
         theta = theta[-1,:]
@@ -57,15 +57,16 @@ def log_integral_exp( log_func, theta, critical_points):
     
     
     if critical_points == None:
-        critical_points = r
+        new_critical_points = r
     elif critical_points.shape[0] == 0:
-        critical_points = r
+        new_critical_points = r
     else:
+        new_critical_points = critical_points.copy()
         if r.size > 0:
-            critical_points = np.unique(np.concatenate[critical_points, r])
+            new_critical_points = np.unique(np.concatenate[new_critical_points, r])
     
-    if critical_points.size > 0:    
-        br_points = np.unique(np.concatenate([x_lbound, critical_points, x_ubound]))
+    if new_critical_points.size > 0:    
+        br_points = np.unique(np.concatenate([x_lbound, new_critical_points, x_ubound]))
     else:
         br_points = np.array([x_lbound, x_ubound])
     
@@ -82,17 +83,16 @@ def log_integral_exp( log_func, theta, critical_points):
 
         buff[i] = log_sum_exp(f) + np.log(l/parts) - np.log(2)
     
-    return log_sum_exp(buff);
+    if return_new_critical_points:
+        return [log_sum_exp(buff), new_critical_points]
+    else:
+        return log_sum_exp(buff);
     
-def compute_log_likelihood(SS, theta, previous_critical_points, n, return_logZ=False):
+def compute_log_likelihood(SS, theta, previous_critical_points, n):
     if len(theta.shape) > 1:
         theta = theta[-1,:]
     
-    logZ = log_integral_exp( compute_poly, theta, previous_critical_points)
-    
+    logZ = log_integral_exp( compute_poly, theta, previous_critical_points)  
     ll = -n*logZ + np.inner(theta.reshape([-1,]), SS.reshape([-1,]))
     
-    if return_logZ:
-        return [ll, logZ]
-    else:
-        return ll
+    return ll

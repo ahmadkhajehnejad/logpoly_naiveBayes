@@ -1,4 +1,4 @@
-import config
+import config.logpoly
 import numpy as np
 
 def log_sum_exp(a, axis=0, keepdims=False):
@@ -13,6 +13,13 @@ def log_sum_exp(a, axis=0, keepdims=False):
 def compute_poly(x, theta):
     if len(theta.shape) == 1:
         theta = theta.reshape([1,-1])
+        
+    if type(x) != np.ndarray:
+        if type(x) == list:
+            x = np.array(x)
+        else:
+            x = np.array([x])
+        
     k = theta.shape[1] - 1
     t = theta.shape[0]
     n = x.size
@@ -27,7 +34,7 @@ def compute_poly(x, theta):
 def compute_SS(x, theta=None):
 
     n = x.size
-    k = config.factor_degree
+    k = config.logpoly.logpoly.factor_degree
     
     if theta == None:
         p = np.ones([n,])
@@ -44,7 +51,7 @@ def compute_SS(x, theta=None):
 
 
 def log_integral_exp( log_func, theta, critical_points, return_new_critical_points=False):
-    x_lbound, x_ubound = config.x_lbound, config.x_ubound
+    x_lbound, x_ubound = config.logpoly.x_lbound, config.logpoly.x_ubound
     if len(theta.shape) > 1:
         theta = theta[-1,:]
     theta = theta.reshape([-1,])

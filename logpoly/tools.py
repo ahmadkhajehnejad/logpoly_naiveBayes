@@ -2,13 +2,13 @@ import config
 import numpy as np
 
 def log_sum_exp(a, axis=0, keepdims=False):
-     mx = np.max( a, axis = axis, keepdims=keepdims)
-     tile_shape = np.ones([len(a.shape),], dtype=int)
-     tile_shape[axis] = a.shape[axis]
-     tmp_shape = [i for i in a.shape]
-     tmp_shape[axis] = 1
-     res = mx + np.log(np.sum( np.exp(a-np.tile(mx.reshape(tmp_shape),tile_shape)), axis=axis, keepdims=keepdims))
-     return res
+    mx = np.max( a, axis = axis, keepdims=keepdims)
+    tile_shape = np.ones([len(a.shape),], dtype=int)
+    tile_shape[axis] = a.shape[axis]
+    tmp_shape = [i for i in a.shape]
+    tmp_shape[axis] = 1
+    res = mx + np.log(np.sum( np.exp(a-np.tile(mx.reshape(tmp_shape),tile_shape)), axis=axis, keepdims=keepdims))
+    return res
  
 def compute_poly(x, theta):
     if len(theta.shape) == 1:
@@ -36,7 +36,7 @@ def compute_SS(x, theta=None):
     n = x.size
     k = config.logpoly.factor_degree
     
-    if theta == None:
+    if theta is None:
         p = np.ones([n,])
     elif theta.shape[0] == 0:
         p = np.ones([n,1])
@@ -60,22 +60,21 @@ def log_integral_exp( log_func, theta, critical_points, return_new_critical_poin
         
     r = np.roots(derivative_poly_coeffs)
     r = r.real[r.imag < 1e-10]
-    r = r[ (r >= x_lbound) and (r <= x_ubound)]
+    r = r[ (r >= x_lbound) & (r <= x_ubound)]
     
-    
-    if critical_points == None:
+    if critical_points is None:
         new_critical_points = r
     elif critical_points.shape[0] == 0:
         new_critical_points = r
     else:
         new_critical_points = critical_points.copy()
         if r.size > 0:
-            new_critical_points = np.unique(np.concatenate[new_critical_points, r])
+            new_critical_points = np.unique(np.concatenate([new_critical_points, r]))
     
     if new_critical_points.size > 0:    
-        br_points = np.unique(np.concatenate([x_lbound, new_critical_points, x_ubound]))
+        br_points = np.unique(np.concatenate([np.array([x_lbound]), new_critical_points, np.array([x_ubound])]))
     else:
-        br_points = np.array([x_lbound, x_ubound])
+        br_points = np.array([x_lbound, x_ubound])    
     
     buff = np.zeros( [br_points.size -1,]);
     for i in range(br_points.size - 1):
@@ -89,7 +88,7 @@ def log_integral_exp( log_func, theta, critical_points, return_new_critical_poin
         f = np.concatenate( [ f, f[1:-1] ] )
 
         buff[i] = log_sum_exp(f) + np.log(l/parts) - np.log(2)
-    
+
     if return_new_critical_points:
         return [log_sum_exp(buff), new_critical_points]
     else:

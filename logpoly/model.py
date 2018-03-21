@@ -26,7 +26,7 @@ class Logpoly:
     def __init__(self):
         self.interface = Interface()
     
-    def fit_new_factor(self):
+    def fit_new_factor(self, learn_bias = True):
         theta = self.theta
         critical_points = self.critical_points
         
@@ -35,6 +35,7 @@ class Logpoly:
         k = config.logpoly.factor_degree
         
         theta_new = np.zeros([k+1,])
+        theta_new[0] = 1
         current_log_likelihood = None
         
         if theta is None:
@@ -43,7 +44,6 @@ class Logpoly:
         for iteration in range(config.logpoly.Newtor_max_iter):
             
             print('.',end='')
-            
             ## Compute sufficient statistics and constructing the gradient and the Hessian
             ESS = np.zeros([k+1,]);
             logZ = log_integral_exp(compute_poly, np.concatenate([theta.reshape([-1,k+1]), theta_new.reshape([1,-1])]), critical_points)
@@ -73,10 +73,15 @@ class Logpoly:
             for i in range(k+1):
                 for j in range(k+1):
                     H[i,j] = tmp[i+j]
-            
+                    
             H = -n*(H - np.matmul(ESS.reshape([-1,1]), ESS.reshape([1,-1])))
-            grad = SS - n*ESS
-            delta_theta = np.linalg.solve(H,-grad)
+            grad = SS - n*ESS 
+            
+            if not learn_bias:
+                delta_theta = np.linalg.solve(H[1:,1:], -grad[1:])
+                delta_theta = np.concatenate([np.array([0.0]), delta_theta])
+            else:
+                delta_theta = np.linalg.solve(H,-grad)
             
             ## Line search
             lam = 1
@@ -108,7 +113,10 @@ class Logpoly:
         self.critical_points = np.array([])
         for i in range(config.logpoly.num_factors):
             print('factor #' + str(i))
-            theta_new, self.logZ, self.critical_points = self.fit_new_factor()
+            if i == 0:
+                theta_new, self.logZ, self.critical_points = self.fit_new_factor(learn_bias=False)
+            else:
+                theta_new, self.logZ, self.critical_points = self.fit_new_factor(learn_bias=True)
             self.theta = np.concatenate([self.theta.reshape([-1,config.logpoly.factor_degree+1]), theta_new.reshape([1,-1])])
             if plot:
                 plt.cla()

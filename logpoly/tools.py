@@ -84,10 +84,11 @@ def log_integral_exp( log_func, theta, critical_points, return_new_critical_poin
         parts = 200
         points = np.arange(p1,p2+1e-10,l/parts)
         
-        f = log_func(points, theta)
+        f = log_func(points, theta)        
         f = np.concatenate( [ f, f[1:-1] ] )
 
         buff[i] = log_sum_exp(f) + np.log(l/parts) - np.log(2)
+        
 
     if return_new_critical_points:
         return [log_sum_exp(buff), new_critical_points]

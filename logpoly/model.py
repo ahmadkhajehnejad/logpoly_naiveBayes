@@ -83,9 +83,9 @@ class Logpoly:
                         return (x ** j) * np.exp(compute_poly(x,np.concatenate([theta.reshape([-1,k+1]), theta_new.reshape([1,-1])])) - logZ)
                 
                 if config.logpoly.use_tf:
-                	tmp[j] = TF_integrator.integrate(func, config.logpoly.x_lbound, config.logpoly.x_ubound)
+                    tmp[j] = TF_integrator.integrate(func, config.logpoly.x_lbound, config.logpoly.x_ubound)
                 else:
-                	tmp[j],_ = integrate.quad(func, config.logpoly.x_lbound, config.logpoly.x_ubound)
+                    tmp[j],_ = integrate.quad(func, config.logpoly.x_lbound, config.logpoly.x_ubound)
 
                 
             H = np.zeros([k+1,k+1])

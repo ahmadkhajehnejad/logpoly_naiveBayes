@@ -1,4 +1,4 @@
 from logpoly.model import Logpoly
 
 logpoly = Logpoly()
-logpoly.fit(plot=True)
+logpoly.fit(plot=False)

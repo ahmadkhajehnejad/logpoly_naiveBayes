@@ -5,6 +5,7 @@ import numpy as np
 import scipy.integrate as integrate
 import os
 import matplotlib.pyplot as plt
+import sys
 
 class Interface:
     def __init__(self):
@@ -46,6 +47,7 @@ class Logpoly:
         for iteration in range(config.logpoly.Newton_max_iter):
             
             print('.',end='')
+            sys.stdout.flush()
             ## Compute sufficient statistics and constructing the gradient and the Hessian
             ESS = np.zeros([k+1,]);
             #logZ = log_integral_exp(compute_poly, np.concatenate([theta.reshape([-1,k+1]), theta_new.reshape([1,-1])]), critical_points)
@@ -134,6 +136,7 @@ class Logpoly:
         
         for i in range(config.logpoly.num_factors):
             print('factor #' + str(i))
+            sys.stdout.flush()
             if i == 0:
                 theta_new, self.logZ, self.current_log_likelihood = self.fit_new_factor(constant_bias=1)
                 #theta_new = np.ones([1,config.logpoly.factor_degree+1])
@@ -143,7 +146,9 @@ class Logpoly:
                 theta_new, self.logZ, self.current_log_likelihood = self.fit_new_factor(constant_bias=None)
             self.theta = np.concatenate([self.theta.reshape([-1,config.logpoly.factor_degree+1]), theta_new.reshape([1,-1])])
             print(self.theta)
+            sys.stdout.flush()
             print(self.current_log_likelihood)
+            sys.stdout.flush()
             if plot:
                 plt.cla()
                 

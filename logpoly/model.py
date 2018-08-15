@@ -1,4 +1,4 @@
-from .tools import compute_poly, log_integral_exp, compute_log_likelihood, compute_SS
+from .tools import compute_poly, log_integral_exp, compute_log_likelihood, compute_SS, tf_integrate
 import config.logpoly
 import config.general
 import numpy as np
@@ -65,7 +65,11 @@ class Logpoly:
                 else:
                     def func(x):
                         return (x ** j) * np.exp(compute_poly(x,np.concatenate([theta.reshape([-1,k+1]), theta_new.reshape([1,-1])])) - logZ)
-                ESS[j],_ = integrate.quad(func, config.logpoly.x_lbound, config.logpoly.x_ubound)
+                if config.logpoly.use_tf:
+                    ESS[j] = tf_integrate(func, config.logpoly.x_lbound, config.logpoly.x_ubound)
+                else:
+                    ESS[j],_ = integrate.quad(func, config.logpoly.x_lbound, config.logpoly.x_ubound)
+                
     
             tmp = np.zeros([2*k+1,])
             for j in range(2*k+1):

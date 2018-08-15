@@ -1,5 +1,7 @@
 import config.logpoly
 import numpy as np
+import tensorflow as tf
+from scipy import integrate
 
 def log_sum_exp(a, axis=0, keepdims=False):
     mx = np.max( a, axis = axis, keepdims=keepdims)
@@ -149,3 +151,17 @@ def compute_log_likelihood(SS, theta, n):
     ll = -n*logZ + np.inner(theta[-1,:].reshape([-1,]), SS.reshape([-1,]))
     
     return ll
+
+
+def tf_integrate(func, lbound, ubound):
+    def integrated( f, x ):
+        return tf.map_fn( lambda y: tf.py_func( 
+                   lambda z: integrate.quad( f, lbound, z )[ 0 ], [ y ], tf.float64 ), x )
+    
+    x = tf.constant( [ ubound ], dtype = tf.float64 )
+    
+    _int = integrated(func, x)
+
+    with tf.Session() as sess:
+        res = sess.run( _int )
+    return res

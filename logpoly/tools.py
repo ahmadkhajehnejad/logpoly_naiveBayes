@@ -12,37 +12,67 @@ def log_sum_exp(a, axis=0, keepdims=False):
     res = mx + np.log(np.sum( np.exp(a-np.tile(mx.reshape(tmp_shape),tile_shape)), axis=axis, keepdims=keepdims))
     return res
  
+ 
+
+class TF_compute_poly:
     
-sess = tf.Session()
+    ## Inplemented just for 1 factor.
+    
+    def __init__(self):
+        self.sess = tf.Session()
+        
+        k = config.logpoly.factor_degree
+        self.x = tf.placeholder(tf.float64, shape=[None], name='x')
+        self.theta = tf.placeholder(tf.float64, shape=[k+1], name='x')
+        self.exponents = tf.range(k+1, dtype=tf.float64)
+        
+        self.theta2d = tf.tile(tf.reshape(self.theta,[1,k+1]), [tf.shape(self.x)[0],1])
+        self.x2d = tf.tile(tf.reshape(self.x,[-1,1]), [1,k+1])
+        self.exp2d = tf.tile( tf.reshape(self.exponents,[1,k+1]), [tf.shape(self.x)[0],1])
+        
+        self.res = tf.reduce_sum( tf.multiply( tf.pow(self.x2d , self.exp2d) , self.theta2d), axis=1)
+        
+        self.sess.run(tf.global_variables_initializer())
+        
+    def compute_poly(self,x,theta):
+        return self.sess.run(self.res, {self.x: x, self.theta: theta})
+        
+tf_compute_poly = TF_compute_poly()
 
 def compute_poly(x, theta):
-    if len(theta.shape) == 1:
-        theta = theta.reshape([1,-1])
+    
     if type(x) != np.ndarray:
         if type(x) == list:
             x = np.array(x)
         else:
             x = np.array([x])
-       
+            
+    if config.logpoly.use_tf:
+        if (len(theta.shape) > 1) and (theta.shape[0] > 1):
+            raise('tf compute_poly is implemented just for 1 factor.')
+        res = tf_compute_poly.compute_poly(x, theta.reshape([-1]))
+        
+        #print('x = ' , x)
+        #print('theta = ' , theta)
+        #print('res = ' , res)
+        
+        return res
+                
+    if len(theta.shape) == 1:
+        theta = theta.reshape([1,-1])
+
+            
     k = theta.shape[1] - 1
     t = theta.shape[0]
     n = x.size
  
-    if config.logpoly.use_tf:
-        theta3d = tf.tile(tf.expand_dims(tf.constant(theta, dtype = tf.float64 ),2), [1,1,n])
-        x3d = tf.tile(tf.reshape(tf.constant(x,dtype = tf.float64 ),[1,1,n]), [t,k+1,1])
-        exp3d = tf.tile( tf.reshape(tf.range(k+1, dtype = tf.float64),[1,k+1,1]), [t,1,n])
-        
-        res = sess.run(tf.reduce_prod(tf.reduce_sum( tf.multiply( tf.pow(x3d , exp3d) , theta3d), axis=1), axis=0))
-    else:
     
-        theta3d = np.tile(np.expand_dims(theta,2), [1,1,n])
-        x3d = np.tile(x.reshape([1,1,n]), [t,k+1,1])
-        exp3d = np.tile(np.arange(k+1).reshape([1,k+1,1]),[t,1,n])
-        
-        res = np.prod(np.sum( (x3d ** exp3d) * theta3d, axis=1), axis=0)
     
-    return res
+    theta3d = np.tile(np.expand_dims(theta,2), [1,1,n])
+    x3d = np.tile(x.reshape([1,1,n]), [t,k+1,1])
+    exp3d = np.tile(np.arange(k+1).reshape([1,k+1,1]),[t,1,n])
+    
+    return np.prod(np.sum( (x3d ** exp3d) * theta3d, axis=1), axis=0)
 
 
 def compute_SS(x, theta=None):

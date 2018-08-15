@@ -153,15 +153,18 @@ def compute_log_likelihood(SS, theta, n):
     return ll
 
 
-def tf_integrate(func, lbound, ubound):
-    def integrated( f, x ):
-        return tf.map_fn( lambda y: tf.py_func( 
-                   lambda z: integrate.quad( f, lbound, z )[ 0 ], [ y ], tf.float64 ), x )
+class TF_integrator:
     
-    x = tf.constant( [ ubound ], dtype = tf.float64 )
+    sess = tf.Session()
     
-    _int = integrated(func, x)
-
-    with tf.Session() as sess:
-        res = sess.run( _int )
-    return res
+    def integrate(func, lbound, ubound):
+        def integrated( f, x ):
+            return tf.map_fn( lambda y: tf.py_func( 
+                       lambda z: integrate.quad( f, lbound, z )[ 0 ], [ y ], tf.float64 ), x )
+        
+        x = tf.constant( [ ubound ], dtype = tf.float64 )
+        
+        _int = integrated(func, x)
+    
+        res = TF_integrator.sess.run( _int )
+        return res

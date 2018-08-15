@@ -12,6 +12,9 @@ def log_sum_exp(a, axis=0, keepdims=False):
     res = mx + np.log(np.sum( np.exp(a-np.tile(mx.reshape(tmp_shape),tile_shape)), axis=axis, keepdims=keepdims))
     return res
  
+    
+sess = tf.Session()
+
 def compute_poly(x, theta):
     if len(theta.shape) == 1:
         theta = theta.reshape([1,-1])
@@ -20,16 +23,26 @@ def compute_poly(x, theta):
             x = np.array(x)
         else:
             x = np.array([x])
-        
+       
     k = theta.shape[1] - 1
     t = theta.shape[0]
     n = x.size
+ 
+    if config.logpoly.use_tf:
+        theta3d = tf.tile(tf.expand_dims(tf.constant(theta, dtype = tf.float64 ),2), [1,1,n])
+        x3d = tf.tile(tf.reshape(tf.constant(x,dtype = tf.float64 ),[1,1,n]), [t,k+1,1])
+        exp3d = tf.tile( tf.reshape(tf.range(k+1, dtype = tf.float64),[1,k+1,1]), [t,1,n])
+        
+        res = sess.run(tf.reduce_prod(tf.reduce_sum( tf.multiply( tf.pow(x3d , exp3d) , theta3d), axis=1), axis=0))
+    else:
     
-    theta3d = np.tile(np.expand_dims(theta,2), [1,1,n])
-    x3d = np.tile(x.reshape([1,1,n]), [t,k+1,1])
-    exp3d = np.tile(np.arange(k+1).reshape([1,k+1,1]),[t,1,n])
+        theta3d = np.tile(np.expand_dims(theta,2), [1,1,n])
+        x3d = np.tile(x.reshape([1,1,n]), [t,k+1,1])
+        exp3d = np.tile(np.arange(k+1).reshape([1,k+1,1]),[t,1,n])
+        
+        res = np.prod(np.sum( (x3d ** exp3d) * theta3d, axis=1), axis=0)
     
-    return np.prod(np.sum( (x3d ** exp3d) * theta3d, axis=1), axis=0)
+    return res
 
 
 def compute_SS(x, theta=None):
@@ -152,7 +165,7 @@ def compute_log_likelihood(SS, theta, n):
     
     return ll
 
-
+'''
 class TF_integrator:
     
     sess = tf.Session()
@@ -168,3 +181,4 @@ class TF_integrator:
     
         res = TF_integrator.sess.run( _int )
         return res
+'''

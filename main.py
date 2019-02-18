@@ -35,7 +35,6 @@ def load_data():
     return [data, labels, features_info]
 
 def k_fold_classify(data, labels, features_info):
-
     classifier = NaiveBayesClassifier(features_info)
     scores = cross_val_score(classifier, data, labels, scoring=scorer, cv=5)
     return scores

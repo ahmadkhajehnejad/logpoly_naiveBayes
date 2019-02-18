@@ -110,7 +110,7 @@ class Logpoly:
                 lam = lam * beta;
 
             if compute_log_likelihood(SS, np.concatenate([theta.reshape([-1,k+1]), (theta_new + lam*delta_theta).reshape([1,-1])]), n) <= current_log_likelihood:
-                print('    number of iterations: ' + str(iteration+1))
+                # print('    number of iterations: ' + str(iteration+1))
                 break
             
             theta_new = theta_new + lam * delta_theta
@@ -127,7 +127,7 @@ class Logpoly:
         #        os.mkdir('./log')
 
         for i in range(self.factors_count):
-            print('factor #' + str(i))
+            # print('factor #' + str(i))
             sys.stdout.flush()
             if i == 0:
                 theta_new, self.logZ, self.current_log_likelihood = self._fit_new_factor(SS, n, constant_bias=1)
@@ -137,10 +137,10 @@ class Logpoly:
             else:
                 theta_new, self.logZ, self.current_log_likelihood = self._fit_new_factor(SS, n, constant_bias=None)
             self.theta = np.concatenate([self.theta.reshape([-1,self.factor_degree+1]), theta_new.reshape([1,-1])])
-            print(self.theta)
-            sys.stdout.flush()
-            print(self.current_log_likelihood)
-            sys.stdout.flush()
+            # print(self.theta)
+            # sys.stdout.flush()
+            # print(self.current_log_likelihood)
+            # sys.stdout.flush()
             # if plot:
             #     plt.cla()
             #
@@ -171,6 +171,7 @@ class LogpolyModelSelector:
 
         avg_log_likelihoods = []
         for model in self.logpoly_models:
+            print('  +')
             SS = compute_SS(data[:n_train], model.factor_degree)
             model.fit(SS, n_train)
             avg_log_likelihoods.append(np.mean(model.logpdf(data[n_train:])))

@@ -4,7 +4,21 @@ from logpoly.model import LogpolyModelSelector
 from categorical.model import CategoricalDensityEstimator
 import config
 import numpy as np
+from multiprocessing import Process, Queue
+import sys
 
+
+def thread_func(shared_space, data, feature_info, c_index, i):
+    if feature_info['feature_type'] == config.general.CONTINUOUS_FEATURE:
+        logpoly_model_selector = LogpolyModelSelector(config.logpoly.list_factor_degrees)
+        scaled_data = logpoly.tools.scale_data(data, feature_info['min_value'],
+                                               feature_info['max_value'])
+        shared_space.put([c_index, i, logpoly_model_selector.select_model(scaled_data)])
+    elif feature_info['feature_type'] == config.general.CATEGORICAL_FEATURE:
+        shared_space.put([c_index, i, CategoricalDensityEstimator(data, feature_info['categories'])])
+    else:
+        raise 'not handled case feature_type=' + str(feature_info['feature_type']) + \
+              ' (dimension #' + str(i) + ')'
 
 
 class NaiveBayesClassifier:
@@ -15,22 +29,48 @@ class NaiveBayesClassifier:
         self.classes = self.features_info[-1]['classes']
 
     def fit(self, data, labels):
-        self.density_estimators = [None] * len(self.classes)
-        for c in self.classes:
+        self.density_estimators = [[None for _ in range(len(self.features_info)-1)] for _ in self.classes]
+
+        if config.general.multiprocessing:
+            shared_space = Queue()
+            processes = [[None for _ in range(len(self.features_info)-1)] for _ in self.classes]
+
+        for c_index, c in enumerate(self.classes):
             class_index = labels == c
             class_data = data[class_index, :]
             for i in range(len(self.features_info) - 1):
-                if self.features_info[i]['feature_type'] == config.general.CONTINUOUS_FEATURE:
-                    logpoly_model_selector = LogpolyModelSelector(config.logpoly.list_factor_degrees)
-                    scaled_data = logpoly.tools.scale_data(class_data[:, i], self.features_info[i]['min_value'],
-                                                           self.features_info[i]['max_value'])
-                    self.density_estimators.append(logpoly_model_selector.select_model(scaled_data))
-                elif self.features_info[i]['feature_type'] == config.general.CATEGORICAL_FEATURE:
-                    self.density_estimators.append(
-                        CategoricalDensityEstimator(class_data[:, i], self.features_info[i]['categories']))
-            else:
-                raise 'not handled case feature_type=' + str(self.features_info[i]['feature_type']) + \
-                      ' (dimension #' + str(i) + ')'
+                print(c_index, i)
+                sys.stdout.flush()
+
+                if config.general.multiprocessing:
+                    processes[c_index][i] = Process(target=thread_func,
+                                                    args=[shared_space, class_data[:, i], self.features_info[i],
+                                                          c_index, i])
+                    processes[c_index][i].start()
+                else:
+                    if self.features_info[i]['feature_type'] == config.general.CONTINUOUS_FEATURE:
+                        logpoly_model_selector = LogpolyModelSelector(config.logpoly.list_factor_degrees)
+                        scaled_data = logpoly.tools.scale_data(class_data[:, i], self.features_info[i]['min_value'],
+                                                               self.features_info[i]['max_value'])
+                        self.density_estimators[c_index][i] = logpoly_model_selector.select_model(scaled_data)
+                    elif self.features_info[i]['feature_type'] == config.general.CATEGORICAL_FEATURE:
+                        self.density_estimators[c_index][i] = CategoricalDensityEstimator(class_data[:, i],
+                                                                                          self.features_info[i][
+                                                                                              'categories'])
+                    else:
+                        raise 'not handled case feature_type=' + str(self.features_info[i]['feature_type']) + \
+                              ' (dimension #' + str(i) + ')'
+
+        for c_index in range(len(self.classes)):
+            for i in range(len(self.features_info) - 1):
+                res = shared_space.get()
+                self.density_estimators[res[0]][res[1]] = res[2]
+        for c_index in range(len(self.classes)):
+            for i in range(len(self.features_info) - 1):
+                processes[c_index][i].join()
+                processes[c_index][i].terminate()
+        shared_space.close()
+
 
     def get_log_likelihood_per_class(self, data):
         log_likelihood_per_class = np.zeros([data.shape[0], len(self.classes)])
@@ -40,9 +80,9 @@ class NaiveBayesClassifier:
                 if self.features_info[i]['feature_type'] == config.general.CONTINUOUS_FEATURE:
                     scaled_data = logpoly.tools.scale_data(data[:, i], self.features_info[i]['min_value'],
                                                            self.features_info[i]['max_value'])
-                    log_likelihood_per_dim[:, i] = self.density_estimators[i].logpdf(scaled_data)
+                    log_likelihood_per_dim[:, i] = self.density_estimators[c_index][i].logpdf(scaled_data)
                 else:
-                    log_likelihood_per_dim[:, i] = self.density_estimators[i].logpdf(data[:, i])
+                    log_likelihood_per_dim[:, i] = self.density_estimators[c_index][i].logpdf(data[:, i])
             log_likelihood_per_class[:, c_index] = np.sum(log_likelihood_per_dim, axis=1)
         return log_likelihood_per_class
 

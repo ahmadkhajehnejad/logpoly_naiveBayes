@@ -1,7 +1,13 @@
 import config.logpoly
 import numpy as np
-import tensorflow as tf
-from scipy import integrate
+#import tensorflow as tf
+#from scipy import integrate
+
+def scale_data(data, min_value, max_value):
+    return ((data - min_value) / (max_value - min_value)) * (
+                0.9 * (config.logpoly.x_ubound - config.logpoly.x_lbound)) + config.logpoly.x_lbound + (
+                         0.05 * (config.logpoly.x_ubound - config.logpoly.x_lbound))
+
 
 def log_sum_exp(a, axis=0, keepdims=False):
     mx = np.max( a, axis = axis, keepdims=keepdims)
@@ -14,30 +20,30 @@ def log_sum_exp(a, axis=0, keepdims=False):
  
  
 
-class TF_compute_poly:
-    
-    ## Inplemented just for 1 factor.
-    
-    def __init__(self):
-        self.sess = tf.Session()
+# class TF_compute_poly:
+#
+#     ## Inplemented just for 1 factor.
+#
+#     def __init__(self):
+#         self.sess = tf.Session()
+#
+#         k = config.logpoly.factor_degree
+#         self.x = tf.placeholder(tf.float64, shape=[None], name='x')
+#         self.theta = tf.placeholder(tf.float64, shape=[k+1], name='x')
+#         self.exponents = tf.range(k+1, dtype=tf.float64)
+#
+#         self.theta2d = tf.tile(tf.reshape(self.theta,[1,k+1]), [tf.shape(self.x)[0],1])
+#         self.x2d = tf.tile(tf.reshape(self.x,[-1,1]), [1,k+1])
+#         self.exp2d = tf.tile( tf.reshape(self.exponents,[1,k+1]), [tf.shape(self.x)[0],1])
+#
+#         self.res = tf.reduce_sum( tf.multiply( tf.pow(self.x2d , self.exp2d) , self.theta2d), axis=1)
+#
+#         self.sess.run(tf.global_variables_initializer())
+#
+#     def compute_poly(self,x,theta):
+#         return self.sess.run(self.res, {self.x: x, self.theta: theta})
         
-        k = config.logpoly.factor_degree
-        self.x = tf.placeholder(tf.float64, shape=[None], name='x')
-        self.theta = tf.placeholder(tf.float64, shape=[k+1], name='x')
-        self.exponents = tf.range(k+1, dtype=tf.float64)
-        
-        self.theta2d = tf.tile(tf.reshape(self.theta,[1,k+1]), [tf.shape(self.x)[0],1])
-        self.x2d = tf.tile(tf.reshape(self.x,[-1,1]), [1,k+1])
-        self.exp2d = tf.tile( tf.reshape(self.exponents,[1,k+1]), [tf.shape(self.x)[0],1])
-        
-        self.res = tf.reduce_sum( tf.multiply( tf.pow(self.x2d , self.exp2d) , self.theta2d), axis=1)
-        
-        self.sess.run(tf.global_variables_initializer())
-        
-    def compute_poly(self,x,theta):
-        return self.sess.run(self.res, {self.x: x, self.theta: theta})
-        
-tf_compute_poly = TF_compute_poly()
+# tf_compute_poly = TF_compute_poly()
 
 def compute_poly(x, theta):
     
@@ -47,16 +53,16 @@ def compute_poly(x, theta):
         else:
             x = np.array([x])
             
-    if config.logpoly.use_tf:
-        if (len(theta.shape) > 1) and (theta.shape[0] > 1):
-            raise('tf compute_poly is implemented just for 1 factor.')
-        res = tf_compute_poly.compute_poly(x, theta.reshape([-1]))
-        
-        #print('x = ' , x)
-        #print('theta = ' , theta)
-        #print('res = ' , res)
-        
-        return res
+    # if config.logpoly.use_tf:
+    #     if (len(theta.shape) > 1) and (theta.shape[0] > 1):
+    #         raise('tf compute_poly is implemented just for 1 factor.')
+    #     res = tf_compute_poly.compute_poly(x, theta.reshape([-1]))
+    #
+    #     #print('x = ' , x)
+    #     #print('theta = ' , theta)
+    #     #print('res = ' , res)
+    #
+    #     return res
                 
     if len(theta.shape) == 1:
         theta = theta.reshape([1,-1])
@@ -75,10 +81,9 @@ def compute_poly(x, theta):
     return np.prod(np.sum( (x3d ** exp3d) * theta3d, axis=1), axis=0)
 
 
-def compute_SS(x, theta=None):
+def compute_SS(x, k, theta=None):
 
     n = x.size
-    k = config.logpoly.factor_degree
     
     if theta is None:
         p = np.ones([n,1])

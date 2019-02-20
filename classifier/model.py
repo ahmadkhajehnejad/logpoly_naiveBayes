@@ -31,7 +31,7 @@ class NaiveBayesClassifier:
     def fit(self, data, labels):
         self.density_estimators = [[None for _ in range(len(self.features_info)-1)] for _ in self.classes]
 
-        if config.general.multiprocessing:
+        if config.classifier.multiprocessing:
             shared_space = Queue()
             processes = [[None for _ in range(len(self.features_info)-1)] for _ in self.classes]
 
@@ -42,7 +42,7 @@ class NaiveBayesClassifier:
                 print(c_index, i)
                 sys.stdout.flush()
 
-                if config.general.multiprocessing:
+                if config.classifier.multiprocessing:
                     processes[c_index][i] = Process(target=thread_func,
                                                     args=[shared_space, class_data[:, i], self.features_info[i],
                                                           c_index, i])

@@ -2,7 +2,8 @@
 import logpoly
 from logpoly.model import LogpolyModelSelector
 from categorical.model import CategoricalDensityEstimator
-import config
+import config.classifier
+import config.general
 import numpy as np
 from multiprocessing import Process, Queue
 import sys
@@ -74,7 +75,7 @@ class NaiveBayesClassifier:
 
     def get_log_likelihood_per_class(self, data):
         log_likelihood_per_class = np.zeros([data.shape[0], len(self.classes)])
-        for c_index, c in enumerate(self.classses):
+        for c_index, c in enumerate(self.classes):
             log_likelihood_per_dim = np.zeros([data.shape[0], len(self.features_info) - 1])
             for i in range(len(self.features_info) - 1):
                 if self.features_info[i]['feature_type'] == config.general.CONTINUOUS_FEATURE:

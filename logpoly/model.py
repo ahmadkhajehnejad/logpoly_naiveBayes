@@ -171,7 +171,7 @@ class LogpolyModelSelector:
 
         avg_log_likelihoods = []
         for model in self.logpoly_models:
-            print('  +')
+            # print('  +')
             SS = compute_SS(data[:n_train], model.factor_degree)
             model.fit(SS, n_train)
             avg_log_likelihoods.append(np.mean(model.logpdf(data[n_train:])))

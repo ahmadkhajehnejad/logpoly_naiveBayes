@@ -1,7 +1,5 @@
 import config.logpoly
 import numpy as np
-#import tensorflow as tf
-#from scipy import integrate
 
 def scale_data(data, min_value, max_value):
     return ((data - min_value) / (max_value - min_value)) * (
@@ -20,31 +18,6 @@ def log_sum_exp(a, axis=0, keepdims=False):
  
  
 
-# class TF_compute_poly:
-#
-#     ## Inplemented just for 1 factor.
-#
-#     def __init__(self):
-#         self.sess = tf.Session()
-#
-#         k = config.logpoly.factor_degree
-#         self.x = tf.placeholder(tf.float64, shape=[None], name='x')
-#         self.theta = tf.placeholder(tf.float64, shape=[k+1], name='x')
-#         self.exponents = tf.range(k+1, dtype=tf.float64)
-#
-#         self.theta2d = tf.tile(tf.reshape(self.theta,[1,k+1]), [tf.shape(self.x)[0],1])
-#         self.x2d = tf.tile(tf.reshape(self.x,[-1,1]), [1,k+1])
-#         self.exp2d = tf.tile( tf.reshape(self.exponents,[1,k+1]), [tf.shape(self.x)[0],1])
-#
-#         self.res = tf.reduce_sum( tf.multiply( tf.pow(self.x2d , self.exp2d) , self.theta2d), axis=1)
-#
-#         self.sess.run(tf.global_variables_initializer())
-#
-#     def compute_poly(self,x,theta):
-#         return self.sess.run(self.res, {self.x: x, self.theta: theta})
-        
-# tf_compute_poly = TF_compute_poly()
-
 def compute_poly(x, theta):
     
     if type(x) != np.ndarray:
@@ -52,18 +25,7 @@ def compute_poly(x, theta):
             x = np.array(x)
         else:
             x = np.array([x])
-            
-    # if config.logpoly.use_tf:
-    #     if (len(theta.shape) > 1) and (theta.shape[0] > 1):
-    #         raise('tf compute_poly is implemented just for 1 factor.')
-    #     res = tf_compute_poly.compute_poly(x, theta.reshape([-1]))
-    #
-    #     #print('x = ' , x)
-    #     #print('theta = ' , theta)
-    #     #print('res = ' , res)
-    #
-    #     return res
-                
+
     if len(theta.shape) == 1:
         theta = theta.reshape([1,-1])
 
@@ -146,47 +108,54 @@ def log_integral_exp( log_func, theta, critical_points, return_new_critical_poin
 '''
 
 def log_integral_exp( log_func, theta):
-    x_lbound, x_ubound = config.logpoly.x_lbound, config.logpoly.x_ubound
-    
-    
-    if len(theta.shape) == 1:
-        theta = theta.reshape([1,-1])
-    all_theta = theta[0,:].reshape([-1]).copy()
-    d = all_theta.size - 1
-    
-    
-    for i in range(1,len(theta)):
-        tmp = np.matmul(theta[i,:].reshape([-1,1]), all_theta.reshape([1,-1]))
-        all_theta = np.zeros(all_theta.size + d)
-        for i1 in range(tmp.shape[0]):
-            for i2 in range(tmp.shape[1]):
-                all_theta[i1+i2] += tmp[i1,i2]
-    
-    d_all = all_theta.size - 1
-    derivative_poly_coeffs = np.flip(all_theta[1:] * np.arange(1,d_all+1), axis=0)
-        
-    r = np.roots(derivative_poly_coeffs)
-    r = r.real[r.imag < 1e-10]
-    r = np.unique(r[ (r >= x_lbound) & (r <= x_ubound)])
-    
-    if r.size > 0:
-        br_points = np.unique(np.concatenate([np.array([x_lbound]), r.reshape([-1]), np.array([x_ubound])]))
-    else:
-        br_points = np.array([x_lbound, x_ubound])    
-    
-    buff = np.zeros( [br_points.size -1,]);
-    for i in range(br_points.size - 1):
-        p1 = br_points[i]
-        p2 = br_points[i+1]
-        l = p2 - p1
-        parts = 1000
-        points = np.arange(p1,p2+1e-10,l/parts)
-        
-        f = log_func(points, theta)        
-        f = np.concatenate( [ f, f[1:-1] ] )
 
-        buff[i] = log_sum_exp(f) + np.log(l/parts) - np.log(2)
-    return log_sum_exp(buff);
+    if config.logpoly.use_roots_in_log_integral_exp:
+        x_lbound, x_ubound = config.logpoly.x_lbound, config.logpoly.x_ubound
+        if len(theta.shape) == 1:
+            theta = theta.reshape([1,-1])
+        all_theta = theta[0,:].reshape([-1]).copy()
+        d = all_theta.size - 1
+
+        for i in range(1,len(theta)):
+            tmp = np.matmul(theta[i,:].reshape([-1,1]), all_theta.reshape([1,-1]))
+            all_theta = np.zeros(all_theta.size + d)
+            for i1 in range(tmp.shape[0]):
+                for i2 in range(tmp.shape[1]):
+                    all_theta[i1+i2] += tmp[i1,i2]
+
+        d_all = all_theta.size - 1
+        derivative_poly_coeffs = np.flip(all_theta[1:] * np.arange(1,d_all+1), axis=0)
+
+        r = np.roots(derivative_poly_coeffs)
+        r = r.real[r.imag < 1e-10]
+        r = np.unique(r[ (r >= x_lbound) & (r <= x_ubound)])
+
+        if r.size > 0:
+            br_points = np.unique(np.concatenate([np.array([x_lbound]), r.reshape([-1]), np.array([x_ubound])]))
+        else:
+            br_points = np.array([x_lbound, x_ubound])
+
+        buff = np.zeros( [br_points.size -1,]);
+        for i in range(br_points.size - 1):
+            p1 = br_points[i]
+            p2 = br_points[i+1]
+            l = p2 - p1
+            parts = 1000
+            points = np.arange(p1,p2+1e-10,l/parts)
+
+            f = log_func(points, theta)
+            f = np.concatenate( [ f, f[1:-1] ] )
+
+            buff[i] = log_sum_exp(f) + np.log(l/parts) - np.log(2)
+        return log_sum_exp(buff);
+    else:
+        parts = 20000
+        delta = (config.logpoly.x_ubound - config.logpoly.x_lbound) / parts
+        points = np.arange(config.logpoly.x_lbound, config.logpoly.x_ubound + delta/2, delta)
+        f = log_func(points, theta)
+        return log_sum_exp(np.concatenate( [f, f[1:-1]] ) + np.log(delta) - np.log(2))
+
+
 
 def compute_log_likelihood(SS, theta, n):
     if len(theta.shape) == 1:
@@ -199,21 +168,3 @@ def compute_log_likelihood(SS, theta, n):
     ll = -n*logZ + np.inner(theta[-1,:].reshape([-1,]), SS.reshape([-1,]))
     
     return ll
-
-'''
-class TF_integrator:
-    
-    sess = tf.Session()
-    
-    def integrate(func, lbound, ubound):
-        def integrated( f, x ):
-            return tf.map_fn( lambda y: tf.py_func( 
-                       lambda z: integrate.quad( f, lbound, z )[ 0 ], [ y ], tf.float64 ), x )
-        
-        x = tf.constant( [ ubound ], dtype = tf.float64 )
-        
-        _int = integrated(func, x)
-    
-        res = TF_integrator.sess.run( _int )
-        return res
-'''

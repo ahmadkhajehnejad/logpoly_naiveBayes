@@ -1,2 +1,2 @@
-multiprocessing = True
-continuous_density_estimator = 'logpoly'
+multiprocessing = False
+continuous_density_estimator = 'vkde'

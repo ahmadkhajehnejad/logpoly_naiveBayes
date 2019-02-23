@@ -18,10 +18,11 @@ def select_KDE_model(data, list_of_bandwidths):
 
     n_total = data.shape[0]
 
-    index_validation = np.arange(3, n_total, 4)
+    ind = np.argsort(data)
+    index_validation = ind[np.arange(3, n_total, 4)]
     index_tmp = np.ones([n_total])
     index_tmp[index_validation] = 0
-    index_train = np.where(index_tmp)[0]
+    index_train = ind[np.where(index_tmp)[0]]
 
     # ind = np.arange(n_total)
     # np.random.shuffle(ind)

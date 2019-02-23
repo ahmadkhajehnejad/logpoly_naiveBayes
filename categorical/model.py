@@ -7,7 +7,7 @@ class CategoricalDensityEstimator:
         self.theta = {}
         for c in categories:
             self.theta[c] = np.sum(np.array(x) == c)
-        sum_counts = np.sum(self.theta.values())
+        sum_counts = np.sum(list(self.theta.values()))
         for c in categories:
             self.theta[c] = self.theta[c] / sum_counts
 

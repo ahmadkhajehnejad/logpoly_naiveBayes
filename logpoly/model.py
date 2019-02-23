@@ -166,11 +166,17 @@ class LogpolyModelSelector:
     def select_model(self, data):
         n_total = data.shape[0]
 
-        ind = np.arange(n_total)
-        np.random.shuffle(ind)
-        n_train = n_total // 4
-        index_train = ind[:n_train]
-        index_validation = ind[n_train:]
+        index_validation = np.arange(3, n_total, 4)
+        index_tmp = np.ones([n_total])
+        index_tmp[index_validation] = 0
+        index_train = np.where(index_tmp)[0]
+        n_train = index_train.size
+
+        # ind = np.arange(n_total)
+        # np.random.shuffle(ind)
+        # n_train = n_total // 4
+        # index_train = ind[:n_train]
+        # index_validation = ind[n_train:]
 
         avg_log_likelihoods = []
         for model in self.logpoly_models:

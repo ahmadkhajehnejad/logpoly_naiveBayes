@@ -165,15 +165,18 @@ class LogpolyModelSelector:
 
     def select_model(self, data):
         n_total = data.shape[0]
+
         ind = np.arange(n_total)
         np.random.shuffle(ind)
         n_train = n_total // 4
+        index_train = ind[:n_train]
+        index_validation = ind[n_train:]
 
         avg_log_likelihoods = []
         for model in self.logpoly_models:
             # print('  +')
-            SS = compute_SS(data[:n_train], model.factor_degree)
+            SS = compute_SS(data[index_train], model.factor_degree)
             model.fit(SS, n_train)
-            avg_log_likelihoods.append(np.mean(model.logpdf(data[n_train:])))
+            avg_log_likelihoods.append(np.mean(model.logpdf(data[index_validation])))
 
         return self.logpoly_models[np.argmax(avg_log_likelihoods)]

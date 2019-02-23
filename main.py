@@ -54,5 +54,7 @@ if __name__ == '__main__':
     data, labels, features_info = load_data()
     scores = k_fold_classify(data, labels, features_info)
     print(scores)
+    print(np.mean(scores))
+    print(np.std(scores))
 
 

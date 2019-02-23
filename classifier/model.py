@@ -2,8 +2,10 @@
 import logpoly
 from logpoly.model import LogpolyModelSelector
 from categorical.model import CategoricalDensityEstimator
+from kernel_density_estimation.model import KDE, select_KDE_model
 import config.classifier
 import config.general
+import config.kde
 import numpy as np
 from multiprocessing import Process, Queue
 import sys
@@ -40,8 +42,8 @@ class NaiveBayesClassifier:
             class_index = labels == c
             class_data = data[class_index, :]
             for i in range(len(self.features_info) - 1):
-                print(c_index, i)
-                sys.stdout.flush()
+                # print(c_index, i)
+                # sys.stdout.flush()
 
                 if config.classifier.multiprocessing:
                     processes[c_index][i] = Process(target=thread_func,
@@ -50,10 +52,17 @@ class NaiveBayesClassifier:
                     processes[c_index][i].start()
                 else:
                     if self.features_info[i]['feature_type'] == config.general.CONTINUOUS_FEATURE:
-                        logpoly_model_selector = LogpolyModelSelector(config.logpoly.list_factor_degrees)
                         scaled_data = logpoly.tools.scale_data(class_data[:, i], self.features_info[i]['min_value'],
                                                                self.features_info[i]['max_value'])
-                        self.density_estimators[c_index][i] = logpoly_model_selector.select_model(scaled_data)
+
+                        if config.classifier.continuous_density_estimator == 'logpoly':
+                            logpoly_model_selector = LogpolyModelSelector(config.logpoly.list_factor_degrees)
+                            self.density_estimators[c_index][i] = logpoly_model_selector.select_model(scaled_data)
+                        elif config.classifier.continuous_density_estimator == 'kde':
+                            self.density_estimators[c_index][i] = KDE(scaled_data, bandwidth=None)
+                        elif config.classifier.continuous_density_estimator == 'vkde':
+                            self.density_estimators[c_index][i] = select_KDE_model(scaled_data, config.kde.list_of_bandwidths)
+
                     elif self.features_info[i]['feature_type'] == config.general.CATEGORICAL_FEATURE:
                         self.density_estimators[c_index][i] = CategoricalDensityEstimator(class_data[:, i],
                                                                                           self.features_info[i][
@@ -62,15 +71,19 @@ class NaiveBayesClassifier:
                         raise 'not handled case feature_type=' + str(self.features_info[i]['feature_type']) + \
                               ' (dimension #' + str(i) + ')'
 
-        for c_index in range(len(self.classes)):
-            for i in range(len(self.features_info) - 1):
-                res = shared_space.get()
-                self.density_estimators[res[0]][res[1]] = res[2]
-        for c_index in range(len(self.classes)):
-            for i in range(len(self.features_info) - 1):
-                processes[c_index][i].join()
-                processes[c_index][i].terminate()
-        shared_space.close()
+        if config.classifier.multiprocessing:
+            for c_index in range(len(self.classes)):
+                for i in range(len(self.features_info) - 1):
+                    res = shared_space.get()
+                    self.density_estimators[res[0]][res[1]] = res[2]
+            for c_index in range(len(self.classes)):
+                for i in range(len(self.features_info) - 1):
+                    processes[c_index][i].join()
+                    processes[c_index][i].terminate()
+            shared_space.close()
+
+        print('fit')
+        sys.stdout.flush()
 
 
     def get_log_likelihood_per_class(self, data):

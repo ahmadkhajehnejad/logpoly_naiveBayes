@@ -159,9 +159,7 @@ class Logpoly:
 
 class LogpolyModelSelector:
     def __init__(self, list_factor_degrees):
-        self.logpoly_models = []
-        for k in list_factor_degrees:
-            self.logpoly_models.append(Logpoly(factor_degree=k))
+        self.list_factor_degrees = list_factor_degrees
 
     def select_model(self, data):
         n_total = data.shape[0]
@@ -180,10 +178,14 @@ class LogpolyModelSelector:
         # index_validation = ind[n_train:]
 
         avg_log_likelihoods = []
-        for model in self.logpoly_models:
-            # print('  +')
-            SS = compute_SS(data[index_train], model.factor_degree)
-            model.fit(SS, n_train)
-            avg_log_likelihoods.append(np.mean(model.logpdf(data[index_validation])))
+        logpoly_models = []
+        for i, k in enumerate(self.list_factor_degrees):
+            logpoly_models.append(Logpoly(factor_degree=k))
+            SS = compute_SS(data[index_train], k)
+            logpoly_models[i].fit(SS, n_train)
+            avg_log_likelihoods.append(np.mean(logpoly_models[i].logpdf(data[index_validation])))
 
-        return self.logpoly_models[np.argmax(avg_log_likelihoods)]
+        best_index = np.argmax(avg_log_likelihoods)
+        best_logpoly_model = Logpoly(factor_degree=self.list_factor_degrees[best_index])
+        best_logpoly_model.fit(data)
+        return best_logpoly_model

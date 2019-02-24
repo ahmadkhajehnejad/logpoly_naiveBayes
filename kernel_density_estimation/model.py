@@ -30,14 +30,11 @@ def select_KDE_model(data, list_of_bandwidths):
     # index_train = ind[:n_train]
     # index_validation = ind[n_train:]
 
-
-
-
     kde_models = []
     avg_log_likelihoods = []
     for i, w in enumerate(list_of_bandwidths):
         kde_models.append(KDE(data[index_train], bandwidth=w))
         avg_log_likelihoods.append(np.mean(kde_models[i].logpdf(data[index_validation])))
 
-    # print(list_of_bandwidths[np.argmax(avg_log_likelihoods)])
-    return kde_models[np.argmax(avg_log_likelihoods)]
+    best_index = np.argmax(avg_log_likelihoods)
+    return KDE(data, bandwidth=list_of_bandwidths[best_index])

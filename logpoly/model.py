@@ -186,6 +186,8 @@ class LogpolyModelSelector:
             avg_log_likelihoods.append(np.mean(logpoly_models[i].logpdf(data[index_validation])))
 
         best_index = np.argmax(avg_log_likelihoods)
-        best_logpoly_model = Logpoly(factor_degree=self.list_factor_degrees[best_index])
-        best_logpoly_model.fit(data)
+        k = self.list_factor_degrees[best_index]
+        best_logpoly_model = Logpoly(factor_degree=k)
+        SS = compute_SS(data, k)
+        best_logpoly_model.fit(SS, n_total)
         return best_logpoly_model

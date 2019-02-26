@@ -12,11 +12,18 @@ import sys
 
 
 def thread_func(shared_space, data, feature_info, c_index, i):
+    print(c_index, i)
+    sys.stdout.flush()
+    scaled_data = logpoly.tools.scale_data(data, feature_info['min_value'],
+                                           feature_info['max_value'])
     if feature_info['feature_type'] == config.general.CONTINUOUS_FEATURE:
         logpoly_model_selector = LogpolyModelSelector(config.logpoly.list_factor_degrees)
-        scaled_data = logpoly.tools.scale_data(data, feature_info['min_value'],
-                                               feature_info['max_value'])
         shared_space.put([c_index, i, logpoly_model_selector.select_model(scaled_data)])
+    elif config.classifier.continuous_density_estimator == 'kde':
+        shared_space.put([c_index, i, KDE(scaled_data, bandwidth=None)])
+    elif config.classifier.continuous_density_estimator == 'vkde':
+        shared_space.put([c_index, i, select_KDE_model(scaled_data, config.kde.list_of_bandwidths)])
+
     elif feature_info['feature_type'] == config.general.CATEGORICAL_FEATURE:
         shared_space.put([c_index, i, CategoricalDensityEstimator(data, feature_info['categories'])])
     else:

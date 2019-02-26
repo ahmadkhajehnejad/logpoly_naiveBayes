@@ -1,2 +1,2 @@
-multiprocessing = False
-continuous_density_estimator = 'vkde'
+multiprocessing = True
+continuous_density_estimator = 'kde'

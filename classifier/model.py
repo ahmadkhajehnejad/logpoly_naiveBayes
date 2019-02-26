@@ -36,21 +36,41 @@ class NaiveBayesClassifier:
 
         if config.classifier.multiprocessing:
             shared_space = Queue()
-            processes = [[None for _ in range(len(self.features_info)-1)] for _ in self.classes]
+            processes = []
 
-        for c_index, c in enumerate(self.classes):
-            class_index = labels == c
-            class_data = data[class_index, :]
-            for i in range(len(self.features_info) - 1):
-                # print(c_index, i)
-                # sys.stdout.flush()
+            for c_index, c in enumerate(self.classes):
+                class_index = labels == c
+                class_data = data[class_index, :]
+                for i in range(len(self.features_info) - 1):
+                    processes.append(Process(target=thread_func,
+                                        args=[shared_space, class_data[:, i], self.features_info[i],
+                                              c_index, i]))
 
-                if config.classifier.multiprocessing:
-                    processes[c_index][i] = Process(target=thread_func,
-                                                    args=[shared_space, class_data[:, i], self.features_info[i],
-                                                          c_index, i])
-                    processes[c_index][i].start()
-                else:
+            head = np.min([config.general.max_num_processes, len(processes)])
+            for i in range(head):
+                processes[i].start()
+
+            num_terminated = 0
+            while num_terminated < len(processes):
+                res = shared_space.get()
+                c_index, i = res[0], res[1]
+                self.density_estimators[c_index][i] = res[2]
+                p_index = (len(self.features_info) - 1) * c_index + i
+                processes[p_index].join()
+                processes[p_index].terminate()
+                num_terminated += 1
+                if head < len(processes):
+                    processes[head].start()
+                    head += 1
+
+            shared_space.close()
+        else:
+            for c_index, c in enumerate(self.classes):
+                class_index = labels == c
+                class_data = data[class_index, :]
+                for i in range(len(self.features_info) - 1):
+                    # print(c_index, i)
+                    # sys.stdout.flush()
                     if self.features_info[i]['feature_type'] == config.general.CONTINUOUS_FEATURE:
                         scaled_data = logpoly.tools.scale_data(class_data[:, i], self.features_info[i]['min_value'],
                                                                self.features_info[i]['max_value'])
@@ -70,17 +90,6 @@ class NaiveBayesClassifier:
                     else:
                         raise 'not handled case feature_type=' + str(self.features_info[i]['feature_type']) + \
                               ' (dimension #' + str(i) + ')'
-
-        if config.classifier.multiprocessing:
-            for c_index in range(len(self.classes)):
-                for i in range(len(self.features_info) - 1):
-                    res = shared_space.get()
-                    self.density_estimators[res[0]][res[1]] = res[2]
-            for c_index in range(len(self.classes)):
-                for i in range(len(self.features_info) - 1):
-                    processes[c_index][i].join()
-                    processes[c_index][i].terminate()
-            shared_space.close()
 
         print('fit')
         sys.stdout.flush()

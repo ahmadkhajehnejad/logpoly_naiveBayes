@@ -1,2 +1,2 @@
 multiprocessing = True
-continuous_density_estimator = 'kde'
+continuous_density_estimator = 'gmm'

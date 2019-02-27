@@ -3,9 +3,11 @@ import logpoly
 from logpoly.model import LogpolyModelSelector
 from categorical.model import CategoricalDensityEstimator
 from kernel_density_estimation.model import KDE, select_KDE_model
+from Gaussian_mixture_model.model import select_GMM_model
 import config.classifier
 import config.general
 import config.kde
+import config.gmm
 import numpy as np
 from multiprocessing import Process, Queue
 import sys
@@ -24,6 +26,8 @@ def thread_func(shared_space, data, feature_info, c_index, i):
             shared_space.put([c_index, i, KDE(scaled_data, bandwidth=None)])
         elif config.classifier.continuous_density_estimator == 'vkde':
             shared_space.put([c_index, i, select_KDE_model(scaled_data, config.kde.list_of_bandwidths)])
+        elif config.classifier.continuous_density_estimator == 'gmm':
+            shared_space.put([c_index, i, select_GMM_model(scaled_data, config.gmm.list_of_num_components)])
 
     elif feature_info['feature_type'] == config.general.CATEGORICAL_FEATURE:
         shared_space.put([c_index, i, CategoricalDensityEstimator(data, feature_info['categories'])])
@@ -90,6 +94,8 @@ class NaiveBayesClassifier:
                             self.density_estimators[c_index][i] = KDE(scaled_data, bandwidth=None)
                         elif config.classifier.continuous_density_estimator == 'vkde':
                             self.density_estimators[c_index][i] = select_KDE_model(scaled_data, config.kde.list_of_bandwidths)
+                        elif config.classifier.continuous_density_estimator == 'gmm':
+                            self.density_estimators[c_index][i] = select_GMM_model(scaled_data, config.gmm.list_of_num_components)
 
                     elif self.features_info[i]['feature_type'] == config.general.CATEGORICAL_FEATURE:
                         self.density_estimators[c_index][i] = CategoricalDensityEstimator(class_data[:, i],

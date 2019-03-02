@@ -132,8 +132,10 @@ class NaiveBayesClassifier:
     def get_params(self, deep=False):
         return {'features_info': self.features_info}
 
-def scorer_thread_func( shared_space, l, r, data):
-    pass
+def scorer_thread_func( shared_space, l, r, classifier, data):
+    print(l,r)
+    shared_space.put( [l, r, classifier.label(data)] )
+
 
 def scorer(classifier, data, labels):
     if config.classifier.multiprocessing:
@@ -150,9 +152,13 @@ def scorer(classifier, data, labels):
                 r_inddex = n_test
             else:
                 r_inddex = (i+1) * part_size
-            processes[i] = Process(target=scorer_thread_func, args=[shared_space, l_index, r_inddex,
-                                                                      data[l_index:r_inddex, :].reshape(
-                                                                          [-1, data.shape[1]])], daemon=True)
+            processes[i] = Process(target=scorer_thread_func, args=[shared_space, l_index, r_inddex, classifier,
+                                                                    data[l_index:r_inddex, :].reshape(
+                                                                        [-1, data.shape[1]])], daemon=True)
+
+        print('num of all scoring processes:', len(processes))
+        print('size of test data:', n_test)
+        sys.stdout.flush()
 
         predicted_labels = np.zeros([n_test], dtype=classifier.classes.dtype)
 

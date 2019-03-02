@@ -56,7 +56,7 @@ class NaiveBayesClassifier:
                 for i in range(len(self.features_info) - 1):
                     processes.append(Process(target=thread_func,
                                         args=[shared_space, class_data[:, i], self.features_info[i],
-                                              c_index, i]))
+                                              c_index, i], daemon=True))
 
             head = np.min([config.general.max_num_processes, len(processes)])
             for i in range(head):
@@ -70,6 +70,7 @@ class NaiveBayesClassifier:
                 p_index = (len(self.features_info) - 1) * c_index + i
                 processes[p_index].join()
                 processes[p_index].terminate()
+                processes[p_index] = None
                 num_terminated += 1
                 if head < len(processes):
                     processes[head].start()

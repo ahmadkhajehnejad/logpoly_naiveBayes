@@ -146,7 +146,7 @@ def scorer(classifier, data, labels):
         n_test = data.shape[0]
         shared_space = Queue()
         part_size = config.classifier.max_test_size
-        processes = [None] * ( (n_test + part_size - 1) / part_size )
+        processes = [None] * ( (n_test + part_size - 1) // part_size )
 
         for i in range(len(processes)):
 

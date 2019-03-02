@@ -10,6 +10,7 @@ import config.kde
 import config.gmm
 import numpy as np
 from multiprocessing import Process, Queue
+import gc
 import sys
 
 
@@ -72,6 +73,8 @@ class NaiveBayesClassifier:
                 processes[p_index].terminate()
                 processes[p_index] = None
                 num_terminated += 1
+                if np.mod(num_terminated, config.general.num_processes_per_garbage_collection) == 0:
+                    gc.collect()
                 if head < len(processes):
                     processes[head].start()
                     head += 1
@@ -176,6 +179,8 @@ def scorer(classifier, data, labels):
             processes[p_index].terminate()
             processes[p_index] = None
             num_terminated += 1
+            if np.mod(num_terminated, config.general.num_processes_per_garbage_collection) == 0:
+                gc.collect()
             if head < len(processes):
                 processes[head].start()
                 head += 1

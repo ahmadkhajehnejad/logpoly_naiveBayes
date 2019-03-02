@@ -13,7 +13,7 @@ from multiprocessing import Process, Queue
 import sys
 
 
-def thread_func(shared_space, data, feature_info, c_index, i):
+def fit_thread_func(shared_space, data, feature_info, c_index, i):
     print(c_index, i)
     sys.stdout.flush()
     scaled_data = logpoly.tools.scale_data(data, feature_info['min_value'],
@@ -54,8 +54,8 @@ class NaiveBayesClassifier:
                 class_index = labels == c
                 class_data = data[class_index, :]
                 for i in range(len(self.features_info) - 1):
-                    processes.append(Process(target=thread_func,
-                                        args=[shared_space, class_data[:, i], self.features_info[i],
+                    processes.append(Process(target=fit_thread_func,
+                                             args=[shared_space, class_data[:, i], self.features_info[i],
                                               c_index, i], daemon=True))
 
             head = np.min([config.general.max_num_processes, len(processes)])
@@ -132,8 +132,50 @@ class NaiveBayesClassifier:
     def get_params(self, deep=False):
         return {'features_info': self.features_info}
 
+def scorer_thread_func( shared_space, l, r, data):
+    pass
 
 def scorer(classifier, data, labels):
-    predicted_labels = classifier.label(data)
+    if config.classifier.multiprocessing:
+
+        n_test = data.shape[0]
+        shared_space = Queue()
+        part_size = config.classifier.max_test_size
+        processes = [None] * ( (n_test + part_size - 1) / part_size )
+
+        for i in range(len(processes)):
+
+            l_index = i * part_size
+            if i == len(processes) - 1:
+                r_inddex = n_test
+            else:
+                r_inddex = (i+1) * part_size
+            processes[i] = Process(target=scorer_thread_func, args=[shared_space, l_index, r_inddex,
+                                                                      data[l_index:r_inddex, :].reshape(
+                                                                          [-1, data.shape[1]])], daemon=True)
+
+        predicted_labels = np.zeros([n_test], dtype=classifier.classes.dtype)
+
+        head = np.min([config.general.max_num_processes, len(processes)])
+        for i in range(head):
+            processes[i].start()
+
+        num_terminated = 0
+        while num_terminated < len(processes):
+            res = shared_space.get()
+            l_index, r_index = res[0], res[1]
+            predicted_labels[l_index:r_index] = res[2]
+            p_index = l_index // part_size
+            processes[p_index].join()
+            processes[p_index].terminate()
+            processes[p_index] = None
+            num_terminated += 1
+            if head < len(processes):
+                processes[head].start()
+                head += 1
+
+        shared_space.close()
+    else:
+        predicted_labels = classifier.label(data)
     score = np.sum(labels == predicted_labels) / data.shape[0]
     return score

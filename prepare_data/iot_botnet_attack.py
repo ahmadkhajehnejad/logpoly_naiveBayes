@@ -13,8 +13,8 @@ data = pd.read_csv(data_root_path + benign_path)
 data['label'] = 0
 
 for i, p in enumerate(attacks_paths):
-    print(i, p)
     data_tmp = pd.read_csv(data_root_path + p)
+    print(i, p, len(data_tmp))
     #data_tmp['label'] = i+1
     data_tmp['label'] = 1
     data = data.append(data_tmp)

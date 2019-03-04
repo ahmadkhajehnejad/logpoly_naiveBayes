@@ -141,7 +141,11 @@ def log_integral_exp( log_func, theta):
             p2 = br_points[i+1]
             l = p2 - p1
             parts = 1000
-            points = np.arange(p1,p2+1e-10,l/parts)
+            delta = l/parts
+            points = np.arange(p1,p2,delta)
+            if len(points) < parts + 1:
+                points = np.concatenate([points, [p2]])
+
 
             f = log_func(points, theta)
             f = np.concatenate( [ f, f[1:-1] ] )

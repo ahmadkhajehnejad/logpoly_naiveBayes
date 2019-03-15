@@ -9,7 +9,7 @@ max_x = np.max(x, axis=0)
 x = logpoly.tools.scale_data(x, min_x, max_x)
 
 n = len(x)
-poly_degree = 10
+poly_degree = 100
 SS = compute_SS(x, poly_degree)
 logpoly_density_estimator = Logpoly(poly_degree)
 logpoly_density_estimator.fit(SS, n)

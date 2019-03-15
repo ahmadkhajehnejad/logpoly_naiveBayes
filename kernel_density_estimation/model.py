@@ -1,5 +1,7 @@
 from sklearn.neighbors.kde import KernelDensity
 import numpy as np
+import config.classifier
+from classifier.model import get_train_and_validation_index
 
 
 class KDE:
@@ -18,17 +20,12 @@ def select_KDE_model(data, list_of_bandwidths):
 
     n_total = data.shape[0]
 
-    ind = np.argsort(data)
-    index_validation = ind[np.arange(3, n_total, 4)]
-    index_tmp = np.ones([n_total])
-    index_tmp[index_validation] = 0
-    index_train = ind[np.where(index_tmp)[0]]
-
-    # ind = np.arange(n_total)
-    # np.random.shuffle(ind)
-    # n_train = n_total // 4
-    # index_train = ind[:n_train]
-    # index_validation = ind[n_train:]
+    if config.classifier.smart_validation:
+        ind = np.argsort(data)
+    else:
+        ind = np.arange(n_total)
+    index_train, index_validation = get_train_and_validation_index(ind)
+    n_train = index_train.size
 
     kde_models = []
     avg_log_likelihoods = []

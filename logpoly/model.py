@@ -3,6 +3,7 @@ import config.logpoly
 import config.general
 import numpy as np
 import scipy.integrate as integrate
+from classifier.model import get_train_and_validation_index
 # import os
 # import matplotlib.pyplot as plt
 import sys
@@ -128,7 +129,7 @@ class Logpoly:
 
         for i in range(self.factors_count):
             # print('factor #' + str(i))
-            sys.stdout.flush()
+            # sys.stdout.flush()
             if i == 0:
                 theta_new, self.logZ, self.current_log_likelihood = self._fit_new_factor(SS, n, constant_bias=1)
                 #theta_new = np.ones([1,self.factor_degree+1])
@@ -164,18 +165,13 @@ class LogpolyModelSelector:
     def select_model(self, data):
         n_total = data.shape[0]
 
-        ind = np.argsort(data)
-        index_validation = ind[np.arange(3, n_total, 4)]
-        index_tmp = np.ones([n_total])
-        index_tmp[index_validation] = 0
-        index_train = ind[np.where(index_tmp)[0]]
-        n_train = index_train.size
 
-        # ind = np.arange(n_total)
-        # np.random.shuffle(ind)
-        # n_train = n_total // 4
-        # index_train = ind[:n_train]
-        # index_validation = ind[n_train:]
+        if config.classifier.smart_validation:
+            ind = np.argsort(data)
+        else:
+            ind = np.arange(n_total)
+        index_train, index_validation = get_train_and_validation_index(ind)
+        n_train = index_train.size
 
         avg_log_likelihoods = []
         logpoly_models = []

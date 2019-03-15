@@ -36,6 +36,8 @@ def fit_thread_func(shared_space, data, feature_info, c_index, i):
         raise 'not handled case feature_type=' + str(feature_info['feature_type']) + \
               ' (dimension #' + str(i) + ')'
 
+    print('thread finished')
+    sys.stdout.flush()
 
 class NaiveBayesClassifier:
 
@@ -141,6 +143,10 @@ def scorer_thread_func( shared_space, l, r, classifier, data):
 
 
 def scorer(classifier, data, labels):
+
+    if config.classifier.test_size is not None:
+        data = data[:config.classifier.test_size, :]
+
     if config.classifier.multiprocessing:
 
         n_test = data.shape[0]
@@ -189,4 +195,22 @@ def scorer(classifier, data, labels):
     else:
         predicted_labels = classifier.label(data)
     score = np.sum(labels == predicted_labels) / data.shape[0]
+    print('     score:', score)
+    sys.stdout.flush()
     return score
+
+def get_train_and_validation_index(ind):
+    n_total = ind.size
+    if config.classifier.smart_validation:
+        index_validation = ind[
+            np.arange(config.classification.validation_portion - 1, n_total, config.classification.validation_portion)]
+        index_tmp = np.ones([n_total])
+        index_tmp[index_validation] = 0
+        index_train = ind[np.where(index_tmp)[0]]
+    else:
+        np.random.shuffle(ind)
+        n_train = n_total // config.classification.validation_portion
+        index_train = ind[:n_train]
+        index_validation = ind[n_train:]
+
+    return [index_train, index_validation]

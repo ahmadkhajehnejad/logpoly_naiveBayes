@@ -1,7 +1,7 @@
 from sklearn.neighbors.kde import KernelDensity
 import numpy as np
 import config.classifier
-from classifier.model import get_train_and_validation_index
+from tools import get_train_and_validation_index
 
 
 class KDE:

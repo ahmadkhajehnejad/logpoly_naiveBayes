@@ -1,7 +1,7 @@
 from sklearn.mixture.gaussian_mixture import GaussianMixture as GMM
 import numpy as np
 import config.gmm
-from classifier.model import get_train_and_validation_index
+from tools import get_train_and_validation_index
 
 
 class GaussianMixtureModel:

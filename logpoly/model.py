@@ -3,7 +3,7 @@ import config.logpoly
 import config.general
 import numpy as np
 import scipy.integrate as integrate
-from classifier.model import get_train_and_validation_index
+from tools import get_train_and_validation_index
 # import os
 # import matplotlib.pyplot as plt
 import sys

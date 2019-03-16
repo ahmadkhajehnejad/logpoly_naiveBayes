@@ -146,6 +146,7 @@ def scorer(classifier, data, labels):
 
     if config.classifier.test_size is not None:
         data = data[:config.classifier.test_size, :]
+        labels = labels[:config.classifier.test_size]
 
     if config.classifier.multiprocessing:
 

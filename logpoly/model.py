@@ -92,12 +92,17 @@ class Logpoly:
                     
             H = -n*(H - np.matmul(ESS.reshape([-1,1]), ESS.reshape([1,-1])))
             grad = SS - n*ESS 
-            
-            if constant_bias is None:
-                delta_theta = np.linalg.solve(H, -grad)
-            else:
-                delta_theta = np.linalg.solve(H[1:, 1:], -grad[1:])
-                delta_theta = np.concatenate([np.array([0.0]), delta_theta])
+
+
+            try:
+                if constant_bias is None:
+                    delta_theta = np.linalg.solve(H, -grad)
+                else:
+                    delta_theta = np.linalg.solve(H[1:, 1:], -grad[1:])
+                    delta_theta = np.concatenate([np.array([0.0]), delta_theta])
+            except:
+                print('$$$$$$$$$$$$$$ Exception occured.')
+
             
             ## Line search
             lam = 1

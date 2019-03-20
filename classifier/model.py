@@ -139,6 +139,7 @@ class NaiveBayesClassifier:
 
 def scorer_thread_func( shared_space, l, r, classifier, data):
     print(l,r)
+    sys.stdout.flush()
     shared_space.put( [l, r, classifier.label(data)] )
 
 

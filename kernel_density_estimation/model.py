@@ -9,6 +9,9 @@ class KDE:
     def __init__(self, data, bandwidth = None):
         if bandwidth is None:
             bandwidth = 1. / np.sqrt(data.size)
+        elif bandwidth == "around_heuristic":
+            b = 1. / np.sqrt(data.size)
+            bandwidth = [b/2, b, 2*b]
         self.kde = KernelDensity(kernel='gaussian', bandwidth=bandwidth).fit(np.array(data).reshape([-1, 1]))
 
 
@@ -25,7 +28,6 @@ def select_KDE_model(data, list_of_bandwidths):
     else:
         ind = np.arange(n_total)
     index_train, index_validation = get_train_and_validation_index(ind)
-    n_train = index_train.size
 
     kde_models = []
     avg_log_likelihoods = []

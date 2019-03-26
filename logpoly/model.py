@@ -4,6 +4,7 @@ import config.general
 import numpy as np
 import scipy.integrate as integrate
 from tools import get_train_and_validation_index
+# from mpmath import mp
 # import os
 # import matplotlib.pyplot as plt
 import sys
@@ -89,10 +90,24 @@ class Logpoly:
             for i in range(k+1):
                 for j in range(k+1):
                     H[i, j] = tmp[i+j]
-                    
-            H = -n*(H - np.matmul(ESS.reshape([-1,1]), ESS.reshape([1,-1])))
-            grad = SS - n*ESS 
 
+            H = -n*(H - np.matmul(ESS.reshape([-1,1]), ESS.reshape([1,-1])))
+            grad = SS - n*ESS
+
+            # if constant_bias is None:
+            #     pass
+            # else:
+            #     eps = 1e-8 + np.min( np.max(np.linalg.eigvals(H[1:,1:])), 0 )
+            #     H[1:,1:] -= eps*np.eye(H.shape[0]-1)
+
+            # if constant_bias is None:
+            #     mp.dps = 1000
+            #     delta_theta = mp.cholesky_solve(H, -grad)
+            # else:
+            #     mp.dps = 1000
+            #     # delta_theta = mp.cholesky_solve(H[1:, 1:], -grad[1:])
+            #     delta_theta = np.array(mp.cholesky_solve(-H[1:, 1:], grad[1:]), dtype=float)
+            #     delta_theta = np.concatenate([np.array([0.0]), delta_theta])
 
             try:
                 if constant_bias is None:

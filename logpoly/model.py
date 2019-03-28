@@ -1,33 +1,15 @@
-from .tools import compute_poly, log_integral_exp, compute_log_likelihood, compute_SS, scale_data #, TF_integrator
+from .tools import mp_compute_poly, mp_log_integral_exp, mp_compute_SS
 import config.logpoly
 import config.general
 import numpy as np
-import scipy.integrate as integrate
 from tools import get_train_and_validation_index
-# from mpmath import mp
+from mpmath import mp
+import mpmath
+import warnings
+from numba import jit
 # import os
 # import matplotlib.pyplot as plt
 import sys
-
-# class LogpolyDataInterface:
-#
-#     def _extract_statistics(self, x, data_info):
-#         self.n = len(x)
-#         min_x = data_info.min_value
-#         max_x = data_info.max_value
-#         self.x = ((x - min_x) / (max_x - min_x)) * (
-#                     0.9 * (config.logpoly.x_ubound - config.logpoly.x_lbound)) + config.logpoly.x_lbound + (
-#                              0.05 * (config.logpoly.x_ubound - config.logpoly.x_lbound))
-#
-#     #def __init__(self):
-#     #    x = np.load('./data/' + config.general.dataset_name + '.npy')
-#     #    self._extract_statistics(x)
-#
-#     def __init__(self, x):
-#         self._extract_statistics(x)
-#
-#     # def get_n(self):
-#     #     return self.n
 
 class Logpoly:
 
@@ -35,6 +17,7 @@ class Logpoly:
         self.factor_degree = factor_degree
         self.factors_count = factors_count
         self.theta = np.array([])
+        mp.dps = config.logpoly.mp_dps
 
 
     def _fit_new_factor(self, SS, n, constant_bias = None):
@@ -55,44 +38,50 @@ class Logpoly:
         for iteration in range(config.logpoly.Newton_max_iter):
             
             # print('.',end='')
-            # sys.stdout.flush()
+            print('.')
+            sys.stdout.flush()
 
             ## Compute sufficient statistics and constructing the gradient and the Hessian
             ESS = np.zeros([k+1,])
-            logZ = log_integral_exp(compute_poly, np.concatenate([theta.reshape([-1,k+1]), theta_new.reshape([1,-1])]))
+            logZ = mp_log_integral_exp(mp_compute_poly, np.concatenate([theta.reshape([-1,k+1]), theta_new.reshape([1,-1])]))
             
             for j in range(k+1):
                 if len(theta) > 0:
                     def func(x):
-                        return compute_poly(x, theta) * (x ** j) * np.exp(compute_poly(x, np.concatenate(
-                            [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])])) - logZ)
+                        return mp_compute_poly(x, theta)[0] * mpmath.power(x,j) * mpmath.exp(mp_compute_poly(x, np.concatenate(
+                            [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]))[0] - logZ)
                 else:
                     def func(x):
-                        return (x ** j) * np.exp(compute_poly(x, np.concatenate(
-                            [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])])) - logZ)
+                        return mpmath.power(x,j) * mpmath.exp(mp_compute_poly(x, np.concatenate(
+                            [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]))[0] - logZ)
                     
-                ESS[j], _ = integrate.quad(func, config.logpoly.x_lbound, config.logpoly.x_ubound)
+                ESS[j] = mpmath.quad(func, [config.logpoly.x_lbound, config.logpoly.x_ubound])
+
+            ESS = mpmath.matrix(ESS)
 
             tmp = np.zeros([2*k+1, ])
             for j in range(2*k+1):
                 if len(theta) > 0:
                     def func(x):
-                        return (compute_poly(x, theta) ** 2) * (x ** j) * np.exp(compute_poly(x, np.concatenate(
-                            [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])])) - logZ)
+                        return (mp_compute_poly(x, theta)[0] ** 2) * mpmath.power(x,j) * mpmath.exp(mp_compute_poly(x, np.concatenate(
+                            [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]))[0] - logZ)
                 else:
                     def func(x):
-                        return (x ** j) * np.exp(compute_poly(x, np.concatenate(
-                            [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])])) - logZ)
-                
-                tmp[j], _ = integrate.quad(func, config.logpoly.x_lbound, config.logpoly.x_ubound)
+                        return mpmath.power(x,j) * mpmath.exp(mp_compute_poly(x, np.concatenate(
+                            [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]))[0] - logZ)
 
-            H = np.zeros([k+1,k+1])
+                if (len(theta) == 0) and (j <= k):
+                    tmp[j] = ESS[j]
+                else:
+                    tmp[j] = mpmath.quad(func, [config.logpoly.x_lbound, config.logpoly.x_ubound])
+
+            H = mpmath.matrix(k+1)
             for i in range(k+1):
                 for j in range(k+1):
                     H[i, j] = tmp[i+j]
 
-            H = -n*(H - np.matmul(ESS.reshape([-1,1]), ESS.reshape([1,-1])))
-            grad = SS - n*ESS
+            H = -n*( H - (ESS * ESS.transpose()) )
+            grad = mpmath.matrix(SS) - n*ESS
 
             # if constant_bias is None:
             #     pass
@@ -100,49 +89,62 @@ class Logpoly:
             #     eps = 1e-8 + np.min( np.max(np.linalg.eigvals(H[1:,1:])), 0 )
             #     H[1:,1:] -= eps*np.eye(H.shape[0]-1)
 
-            # if constant_bias is None:
-            #     mp.dps = 1000
-            #     delta_theta = mp.cholesky_solve(H, -grad)
-            # else:
-            #     mp.dps = 1000
-            #     # delta_theta = mp.cholesky_solve(H[1:, 1:], -grad[1:])
-            #     delta_theta = np.array(mp.cholesky_solve(-H[1:, 1:], grad[1:]), dtype=float)
-            #     delta_theta = np.concatenate([np.array([0.0]), delta_theta])
+            if constant_bias is None:
+                delta_theta = mp.lu_solve(H, -grad)
+                lambda2 = (grad.transpose() * delta_theta)[0]
+                delta_theta = np.array(delta_theta, dtype=float)
+            else:
+                delta_theta = mp.lu_solve(H[1:, 1:], -grad[1:])
+                lambda2 = (grad[1:].transpose() * delta_theta)[0]
+                delta_theta = np.array(delta_theta, dtype=float)
+                delta_theta = np.concatenate([np.array([0.0]), delta_theta])
 
-            try:
-                if constant_bias is None:
-                    delta_theta = np.linalg.solve(H, -grad)
-                else:
-                    delta_theta = np.linalg.solve(H[1:, 1:], -grad[1:])
-                    delta_theta = np.concatenate([np.array([0.0]), delta_theta])
-            except:
-                print('$$$$$$$$$$$$$$ Exception occured.')
+            print('current_log_likelihood = ', current_log_likelihood)
+            print('lambda_2 = ', lambda2)
+            if lambda2 < 0:
+                warnings.warn('lambda_2 < 0')
+            if lambda2 / 2 < n*config.logpoly.theta_epsilon:
+                print('%')
+                # break
+                # [~, D] = eig(H);
+                # diag(D)
+                # # det(inv(H))
+                # grad'*inv(H)*grad
 
-            
             ## Line search
             lam = 1
             alpha = 0.49; beta = 0.5
-            current_log_likelihood = compute_log_likelihood(SS, np.concatenate(
+            current_log_likelihood = _compute_log_likelihood(SS, np.concatenate(
                 [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]), n)
 
-            while compute_log_likelihood(SS, np.concatenate(
-                    [theta.reshape([-1, k + 1]), (theta_new + lam * delta_theta).reshape([1, -1])]),
-                                         n) < current_log_likelihood + alpha * lam * np.inner(grad, delta_theta):
-                lam = lam * beta;
+            while True:
+                tmp_log_likelihood = _compute_log_likelihood(SS, np.concatenate(
+                    [theta.reshape([-1, k + 1]), (theta_new + lam * delta_theta).reshape([1, -1])]), n)
 
-            if compute_log_likelihood(SS, np.concatenate([theta.reshape([-1,k+1]), (theta_new + lam*delta_theta).reshape([1,-1])]), n) <= current_log_likelihood:
+                if tmp_log_likelihood < current_log_likelihood + alpha * lam * np.inner(grad, delta_theta):
+                    print('+', end='')
+                    sys.stdout.flush()
+                    lam = lam * beta;
+                else:
+                    break
+
+            if tmp_log_likelihood <= current_log_likelihood:
                 # print('    number of iterations: ' + str(iteration+1))
+                print('*')
                 break
             
             theta_new = theta_new + lam * delta_theta
-        
-        logZ = log_integral_exp(compute_poly, np.concatenate([theta.reshape([-1,k+1]), theta_new.reshape([1,-1])]))
+            current_log_likelihood = tmp_log_likelihood
+            print('theta_new = ', theta_new)
+
+        logZ = mp_log_integral_exp(mp_compute_poly, np.concatenate([theta.reshape([-1,k+1]), theta_new.reshape([1,-1])]))
         return [theta_new, logZ, current_log_likelihood]
     
     def logpdf(self, x):
-        return compute_poly(x, self.theta) - self.logZ
+        p = mp_compute_poly(x, self.theta)
+        return np.array( [ (a - self.logZ) for a in p ], dtype=float)
     
-    def fit(self, SS, n, plot=False):
+    def fit(self, x, n, plot=False):
         #if plot:
         #    if not os.path.isdir('./log'):
         #        os.mkdir('./log')
@@ -151,11 +153,13 @@ class Logpoly:
             # print('factor #' + str(i))
             # sys.stdout.flush()
             if i == 0:
+                SS = mp_compute_SS(x, self.factor_degree)
                 theta_new, self.logZ, self.current_log_likelihood = self._fit_new_factor(SS, n, constant_bias=1)
                 #theta_new = np.ones([1,self.factor_degree+1])
                 #self.logZ = 1
                 #self.current_log_likelihood = 0
             else:
+                SS = mp_compute_SS(x, self.factor_degree, self.theta)
                 theta_new, self.logZ, self.current_log_likelihood = self._fit_new_factor(SS, n, constant_bias=None)
             self.theta = np.concatenate([self.theta.reshape([-1,self.factor_degree+1]), theta_new.reshape([1,-1])])
             # print(self.theta)
@@ -197,13 +201,22 @@ class LogpolyModelSelector:
         logpoly_models = []
         for i, k in enumerate(self.list_factor_degrees):
             logpoly_models.append(Logpoly(factor_degree=k))
-            SS = compute_SS(data[index_train], k)
-            logpoly_models[i].fit(SS, n_train)
+            logpoly_models[i].fit(data[index_train], n_train)
             avg_log_likelihoods.append(np.mean(logpoly_models[i].logpdf(data[index_validation])))
 
         best_index = np.argmax(avg_log_likelihoods)
         k = self.list_factor_degrees[best_index]
         best_logpoly_model = Logpoly(factor_degree=k)
-        SS = compute_SS(data, k)
-        best_logpoly_model.fit(SS, n_total)
+        best_logpoly_model.fit(data, n_total)
         return best_logpoly_model
+
+
+def _compute_log_likelihood(SS, theta, n):
+    if len(theta.shape) == 1:
+        theta = theta.reshape([1,-1])
+
+    #logZ = log_integral_exp( compute_poly, theta, previous_critical_points)
+    # ll = -n*logZ + np.inner(theta[-1,:].reshape([-1,]), SS.reshape([-1,]))
+    logZ = mp_log_integral_exp( mp_compute_poly, theta)
+    ll = -n * logZ + mp.fdot(theta[-1, :].reshape([-1, ]), SS)
+    return float(ll)

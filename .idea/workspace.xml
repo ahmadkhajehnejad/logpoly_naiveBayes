@@ -2,11 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="8639cad8-1c1c-4b21-8e01-bc2633c86f20" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/test_logpoly_vs_gmm.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/logpoly.py" beforeDir="false" afterPath="$PROJECT_DIR$/config/logpoly.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/logpoly/model.py" beforeDir="false" afterPath="$PROJECT_DIR$/logpoly/model.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/prepare_data/iot_botnet_attack.py" beforeDir="false" afterPath="$PROJECT_DIR$/prepare_data/iot_botnet_attack.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_logpoly_density_estimation.py" beforeDir="false" afterPath="$PROJECT_DIR$/test_logpoly_density_estimation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/logpoly/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/logpoly/tools.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_logpoly_vs_gmm.py" beforeDir="false" afterPath="$PROJECT_DIR$/test_logpoly_vs_gmm.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -17,18 +16,9 @@
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/config/general.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state>
-              <caret column="60" selection-start-column="60" selection-end-column="60" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/main.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="360">
+            <state relative-caret-position="350">
               <caret line="31" column="20" selection-start-line="31" selection-start-column="20" selection-end-line="31" selection-end-column="20" />
               <folding>
                 <element signature="e#84#141#0" expanded="true" />
@@ -40,10 +30,10 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/logpoly/model.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1530">
-              <caret line="102" column="39" lean-forward="true" selection-start-line="102" selection-start-column="39" selection-end-line="102" selection-end-column="39" />
+            <state relative-caret-position="254">
+              <caret line="137" column="44" selection-start-line="137" selection-start-column="44" selection-end-line="137" selection-end-column="44" />
               <folding>
-                <element signature="e#0#114#0" expanded="true" />
+                <element signature="e#1#71#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -61,8 +51,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/test_logpoly_vs_gmm.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-60">
-              <caret line="14" lean-forward="true" selection-start-line="14" selection-end-line="14" />
+            <state relative-caret-position="260">
+              <caret line="36" column="40" selection-start-line="36" selection-start-column="40" selection-end-line="36" selection-end-column="40" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
               </folding>
@@ -73,8 +63,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/config/logpoly.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="45">
-              <caret line="3" column="22" selection-start-line="3" selection-start-column="22" selection-end-line="3" selection-end-column="22" />
+            <state relative-caret-position="30">
+              <caret line="2" column="20" selection-start-line="2" selection-start-column="20" selection-end-line="2" selection-end-column="20" />
             </state>
           </provider>
         </entry>
@@ -82,8 +72,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/logpoly/tools.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="330">
-              <caret line="23" column="27" selection-start-line="23" selection-start-column="27" selection-end-line="23" selection-end-column="27" />
+            <state relative-caret-position="415">
+              <caret line="159" lean-forward="true" selection-start-line="159" selection-end-line="159" />
               <folding>
                 <element signature="e#0#21#0" expanded="true" />
               </folding>
@@ -140,16 +130,22 @@
       <find>num_factors</find>
       <find>factor_degree</find>
       <find>get_SS</find>
-      <find>compute_SS</find>
       <find>fit_new_factor</find>
       <find>interface</find>
-      <find>compute_poly</find>
       <find>config.general.m</find>
       <find>print(</find>
       <find>scan</find>
       <find>vkde</find>
       <find>scale_data</find>
+      <find>logZ</find>
+      <find>%</find>
+      <find>self.current</find>
+      <find>compute_SS</find>
+      <find>compute_poly</find>
     </findStrings>
+    <replaceStrings>
+      <replace>#</replace>
+    </replaceStrings>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -170,10 +166,8 @@
         <option value="$PROJECT_DIR$/bfs.py" />
         <option value="$PROJECT_DIR$/config/__init__.py" />
         <option value="$PROJECT_DIR$/config/gmm.py" />
-        <option value="$PROJECT_DIR$/logpoly/tools.py" />
         <option value="$PROJECT_DIR$/data/iot_botnet_attack_Danmini_Doorbell_feature_types.csv" />
         <option value="$PROJECT_DIR$/Gaussian_mixture_model/model.py" />
-        <option value="$PROJECT_DIR$/config/logpoly.py" />
         <option value="$PROJECT_DIR$/config/classifier.py" />
         <option value="$PROJECT_DIR$/config/general.py" />
         <option value="$PROJECT_DIR$/tools.py" />
@@ -183,6 +177,8 @@
         <option value="$PROJECT_DIR$/config/kde.py" />
         <option value="$PROJECT_DIR$/test_logpoly_density_estimation.py" />
         <option value="$PROJECT_DIR$/test_logpoly_vs_gmm.py" />
+        <option value="$PROJECT_DIR$/config/logpoly.py" />
+        <option value="$PROJECT_DIR$/logpoly/tools.py" />
         <option value="$PROJECT_DIR$/logpoly/model.py" />
       </list>
     </option>
@@ -404,18 +400,19 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="80" y="-11" width="1361" height="912" extended-state="6" />
+    <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" weight="0.25" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" weight="0.32947233" />
-      <window_info anchor="bottom" id="Run" order="2" weight="0.44401544" />
+      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.34749034" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" weight="0.32947233" />
-      <window_info active="true" anchor="bottom" id="Version Control" order="7" visible="true" weight="0.32947233" />
+      <window_info anchor="bottom" id="Version Control" order="7" weight="0.32947233" />
       <window_info anchor="bottom" id="Terminal" order="8" weight="0.32689834" />
       <window_info anchor="bottom" id="Event Log" order="9" side_tool="true" />
       <window_info anchor="bottom" id="Python Console" order="10" weight="0.32947233" />
@@ -454,6 +451,14 @@
               </option>
               <option name="RECENTLY_FILTERED_BRANCH_GROUPS">
                 <collection />
+              </option>
+              <option name="COLUMN_ORDER">
+                <list>
+                  <option value="0" />
+                  <option value="1" />
+                  <option value="2" />
+                  <option value="3" />
+                </list>
               </option>
             </State>
           </value>
@@ -605,33 +610,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/main.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="360">
-          <caret line="31" column="20" selection-start-line="31" selection-start-column="20" selection-end-line="31" selection-end-column="20" />
-          <folding>
-            <element signature="e#84#141#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/config/logpoly.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="45">
-          <caret line="3" column="22" selection-start-line="3" selection-start-column="22" selection-end-line="3" selection-end-column="22" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/logpoly/tools.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="330">
-          <caret line="23" column="27" selection-start-line="23" selection-start-column="27" selection-end-line="23" selection-end-column="27" />
-          <folding>
-            <element signature="e#0#21#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/test_logpoly_density_estimation.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="240">
@@ -659,15 +637,8 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/test_logpoly_vs_gmm.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-60">
-          <caret line="14" lean-forward="true" selection-start-line="14" selection-end-line="14" />
-          <folding>
-            <element signature="e#0#18#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
+    <entry file="file://$USER_HOME$/miniconda2/envs/conpy3/lib/python3.5/site-packages/numpy/__init__.py">
+      <provider selected="true" editor-type-id="text-editor" />
     </entry>
     <entry file="file://$PROJECT_DIR$/kernel_density_estimation/model.py">
       <provider selected="true" editor-type-id="text-editor">
@@ -676,12 +647,49 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/main.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="350">
+          <caret line="31" column="20" selection-start-line="31" selection-start-column="20" selection-end-line="31" selection-end-column="20" />
+          <folding>
+            <element signature="e#84#141#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test_logpoly_vs_gmm.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="260">
+          <caret line="36" column="40" selection-start-line="36" selection-start-column="40" selection-end-line="36" selection-end-column="40" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/config/logpoly.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="30">
+          <caret line="2" column="20" selection-start-line="2" selection-start-column="20" selection-end-line="2" selection-end-column="20" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/logpoly/tools.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="415">
+          <caret line="159" lean-forward="true" selection-start-line="159" selection-end-line="159" />
+          <folding>
+            <element signature="e#0#21#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/logpoly/model.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1530">
-          <caret line="102" column="39" lean-forward="true" selection-start-line="102" selection-start-column="39" selection-end-line="102" selection-end-column="39" />
+        <state relative-caret-position="254">
+          <caret line="137" column="44" selection-start-line="137" selection-start-column="44" selection-end-line="137" selection-end-column="44" />
           <folding>
-            <element signature="e#0#114#0" expanded="true" />
+            <element signature="e#1#71#0" expanded="true" />
           </folding>
         </state>
       </provider>

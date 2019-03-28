@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from logpoly.model import Logpoly
-from logpoly.tools import compute_SS, scale_data
+from logpoly.model import Logpoly, _compute_log_likelihood
+from logpoly.tools import mp_compute_SS, scale_data
 import config.logpoly
 import sys
 
@@ -21,7 +21,7 @@ if __name__ == '__main__':
     pi = np.array([9/26, 2/26, 3/26, 4/26, 1/26, 7/26])
     mu = np.array([1, 20, 50, 85, 130, 160])
     sigma = np.array([1, 2, 3, 1, 2, 3])
-    n = 1000000
+    n = 100000
     min_x = -20
     max_x = 180
 
@@ -34,11 +34,12 @@ if __name__ == '__main__':
     scaled_samples = scale_data(samples, min_x, max_x)
     print(np.min(scaled_samples), np.max(scaled_samples))
     k = 18
-    logpoly = Logpoly(k)
+    logpoly = Logpoly(k, factors_count=1)
     print('fit start')
     sys.stdout.flush()
-    logpoly.fit( compute_SS(scaled_samples, k), n)
+    logpoly.fit(scaled_samples, n)
     print('fit finished')
+    print('loglikelihood: ', logpoly.current_log_likelihood)
     sys.stdout.flush()
     ticks = np.arange(min_x, max_x, 0.1)
     y_ticks = np.exp(logpoly.logpdf(scale_data(ticks, min_x, max_x))) / ((max_x - min_x) / 0.9)

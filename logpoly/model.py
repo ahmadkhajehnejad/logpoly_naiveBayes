@@ -13,8 +13,13 @@ import sys
 
 class Logpoly:
 
-    def __init__(self, factor_degree, factors_count=1):
+    def __init__(self, factor_degree, factors_count=1, gradient_size=None):
         self.factor_degree = factor_degree
+        self.gradient_size = gradient_size
+        if gradient_size is None:
+            self.stop_count_threshold = 1
+        else:
+            self.stop_count_threshold = 2 * (factor_degree + gradient_size - 1) // gradient_size
         self.factors_count = factors_count
         self.theta = np.array([])
         mp.dps = config.logpoly.mp_dps
@@ -34,25 +39,41 @@ class Logpoly:
         
         if theta is None:
             theta = np.array([], dtype=float)
-        
+
+        stop_count = 0
         for iteration in range(config.logpoly.Newton_max_iter):
             
             # print('.',end='')
             print('.')
-            print('fit_new_facor start')
+            print('new_iteration')
             sys.stdout.flush()
 
-            ## Compute sufficient statistics and constructing the gradient and the Hessian
-            ESS = np.array([mpf(0) for i in range(k+1)])
             print('compute_logZ start')
             sys.stdout.flush()
             logZ = mp_log_integral_exp(mp_compute_poly, np.concatenate([theta.reshape([-1,k+1]), theta_new.reshape([1,-1])]))
             print('compute_logZ finish')
             sys.stdout.flush()
 
+            ## Compute sufficient statistics and constructing the gradient and the Hessian
+
+            if self.gradient_size is not None:
+                if constant_bias is None:
+                    grad_dimensions = np.random.choice(np.arange(k+1), self.gradient_size, replace=False)
+                else:
+                    grad_dimensions = np.random.choice(np.arange(1, k+1), self.gradient_size, replace=False)
+            else:
+                if constant_bias is None:
+                    grad_dimensions = np.arange(k+1)
+                else:
+                    grad_dimensions = np.arange(1, k+1)
+
+            print('grad_dimensions: ', grad_dimensions)
+
+            ESS = np.array([mpf(0) for _ in range(k+1)])
+
             print('compute_Expectations start')
             sys.stdout.flush()
-            for j in range(k+1):
+            for j in grad_dimensions:
                 print(j, '- ', end='')
                 sys.stdout.flush()
 
@@ -62,40 +83,47 @@ class Logpoly:
                             [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]))[0] - logZ)
                 else:
                     def func(x):
-                        return mpmath.power(x,j) * mpmath.exp(mp_compute_poly(x, np.concatenate(
+                        return mpmath.power(x, j) * mpmath.exp(mp_compute_poly(x, np.concatenate(
                             [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]))[0] - logZ)
                     
                 ESS[j] = mpmath.quad(func, [config.logpoly.x_lbound, config.logpoly.x_ubound])
 
-            ESS = mpmath.matrix(ESS)
+            ESS = mpmath.matrix(ESS[grad_dimensions])
 
-            tmp = np.array([mpf(0) for i in range(2*k+1)])
-            for j in range(2*k+1):
-                if len(theta) > 0:
-                    def func(x):
-                        return (mp_compute_poly(x, theta)[0] ** 2) * mpmath.power(x,j) * mpmath.exp(mp_compute_poly(x, np.concatenate(
-                            [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]))[0] - logZ)
-                else:
-                    def func(x):
-                        return mpmath.power(x,j) * mpmath.exp(mp_compute_poly(x, np.concatenate(
-                            [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]))[0] - logZ)
+            tmp = np.array([None for _ in range(2*k+1)])
+            if len(theta) == 0:
+                tmp[grad_dimensions] = np.array(ESS)
 
-                if (len(theta) == 0) and (j <= k):
-                    tmp[j] = ESS[j]
-                else:
+            for j1 in grad_dimensions:
+                for j2 in grad_dimensions:
+                    j = j1 + j2
+
+                    if tmp[j] is not None:
+                        continue
+
+                    if len(theta) > 0:
+                        def func(x):
+                            return (mp_compute_poly(x, theta)[0] ** 2) * mpmath.power(x, j) * mpmath.exp(
+                                mp_compute_poly(x, np.concatenate(
+                                    [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]))[0] - logZ)
+                    else:
+                        def func(x):
+                            return mpmath.power(x, j) * mpmath.exp(mp_compute_poly(x, np.concatenate(
+                                [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]))[0] - logZ)
+
                     print(j, '- ', end='')
                     sys.stdout.flush()
                     tmp[j] = mpmath.quad(func, [config.logpoly.x_lbound, config.logpoly.x_ubound])
 
             print()
 
-            H = mpmath.matrix(k+1)
-            for i in range(k+1):
-                for j in range(k+1):
-                    H[i, j] = tmp[i+j]
+            H = mpmath.matrix(len(grad_dimensions))
+            for i in range(len(grad_dimensions)):
+                for j in range(len(grad_dimensions)):
+                    H[i, j] = tmp[grad_dimensions[i]+grad_dimensions[j]]
 
             H = -n*( H - (ESS * ESS.transpose()) )
-            grad = mpmath.matrix(SS) - n*ESS
+            grad = mpmath.matrix(SS[grad_dimensions]) - n*ESS
 
             # if constant_bias is None:
             #     pass
@@ -110,15 +138,21 @@ class Logpoly:
             print('solve_inversion start')
             sys.stdout.flush()
 
-            if constant_bias is None:
-                delta_theta = mp.lu_solve(H, -grad)
-                lambda2 = (grad.transpose() * delta_theta)[0]
-                delta_theta = np.array(delta_theta)
-            else:
-                delta_theta = mp.lu_solve(H[1:, 1:], -grad[1:])
-                lambda2 = (grad[1:].transpose() * delta_theta)[0]
-                delta_theta = np.array(delta_theta)
-                delta_theta = np.concatenate([np.array([mpf(0)]), delta_theta])
+            delta_theta_subset = mp.lu_solve(H, -grad)
+            lambda2 = (grad.transpose() * delta_theta_subset)[0]
+            delta_theta_subset = np.array(delta_theta_subset)
+            delta_theta = np.array([mpf(0) for _ in range(k+1)])
+            delta_theta[grad_dimensions] = delta_theta_subset
+
+            # if constant_bias is None:
+            #     delta_theta = mp.lu_solve(H, -grad)
+            #     lambda2 = (grad.transpose() * delta_theta)[0]
+            #     delta_theta = np.array(delta_theta)
+            # else:
+            #     delta_theta = mp.lu_solve(H[1:, 1:], -grad[1:])
+            #     lambda2 = (grad[1:].transpose() * delta_theta)[0]
+            #     delta_theta = np.array(delta_theta)
+            #     delta_theta = np.concatenate([np.array([mpf(0)]), delta_theta])
 
             print('solve_inversion finish')
             sys.stdout.flush()
@@ -128,12 +162,12 @@ class Logpoly:
             if lambda2 < 0:
                 warnings.warn('lambda_2 < 0')
             if lambda2 / 2 < n*config.logpoly.theta_epsilon:
-                print('%')
-                break
-                # [~, D] = eig(H);
-                # diag(D)
-                # # det(inv(H))
-                # grad'*inv(H)*grad
+                stop_count += 1
+                if stop_count == self.stop_count_threshold:
+                    print('%')
+                    break
+            else:
+                stop_count = 0
 
             ## Line search
             lam = 1
@@ -145,7 +179,7 @@ class Logpoly:
                 tmp_log_likelihood = _compute_log_likelihood(SS, np.concatenate(
                     [theta.reshape([-1, k + 1]), (theta_new + lam * delta_theta).reshape([1, -1])]), n)
 
-                if tmp_log_likelihood < current_log_likelihood + alpha * lam * np.inner(grad, delta_theta):
+                if tmp_log_likelihood < current_log_likelihood + alpha * lam * np.inner(grad, delta_theta_subset):
                     print('+', end='')
                     sys.stdout.flush()
                     lam = lam * beta;

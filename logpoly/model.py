@@ -3,7 +3,7 @@ import config.logpoly
 import config.general
 import numpy as np
 from tools import get_train_and_validation_index
-from mpmath import mp
+from mpmath import mp, mpf
 import mpmath
 import warnings
 from numba import jit
@@ -25,11 +25,11 @@ class Logpoly:
 
         k = self.factor_degree
 
-        theta_new = np.zeros([k+1,])
-        if constant_bias == None:
-            theta_new[0] = 1
+        theta_new = np.array([mpf(0) for i in range(k+1)])
+        if constant_bias is None:
+            theta_new[0] = mpf(1)
         else:
-            theta_new[0] = constant_bias
+            theta_new[0] = mpf(constant_bias)
         current_log_likelihood = None
         
         if theta is None:
@@ -42,7 +42,7 @@ class Logpoly:
             sys.stdout.flush()
 
             ## Compute sufficient statistics and constructing the gradient and the Hessian
-            ESS = np.zeros([k+1,])
+            ESS = np.array([mpf(0) for i in range(k+1)])
             logZ = mp_log_integral_exp(mp_compute_poly, np.concatenate([theta.reshape([-1,k+1]), theta_new.reshape([1,-1])]))
             
             for j in range(k+1):
@@ -59,7 +59,7 @@ class Logpoly:
 
             ESS = mpmath.matrix(ESS)
 
-            tmp = np.zeros([2*k+1, ])
+            tmp = np.array([mpf(0) for i in range(2*k+1)])
             for j in range(2*k+1):
                 if len(theta) > 0:
                     def func(x):
@@ -92,20 +92,20 @@ class Logpoly:
             if constant_bias is None:
                 delta_theta = mp.lu_solve(H, -grad)
                 lambda2 = (grad.transpose() * delta_theta)[0]
-                delta_theta = np.array(delta_theta, dtype=float)
+                delta_theta = np.array(delta_theta)
             else:
                 delta_theta = mp.lu_solve(H[1:, 1:], -grad[1:])
                 lambda2 = (grad[1:].transpose() * delta_theta)[0]
-                delta_theta = np.array(delta_theta, dtype=float)
-                delta_theta = np.concatenate([np.array([0.0]), delta_theta])
+                delta_theta = np.array(delta_theta)
+                delta_theta = np.concatenate([np.array([mpf(0)]), delta_theta])
 
             print('current_log_likelihood = ', current_log_likelihood)
-            print('lambda_2 = ', lambda2)
+            print('lambda_2 / 2 = ', lambda2/2)
             if lambda2 < 0:
                 warnings.warn('lambda_2 < 0')
             if lambda2 / 2 < n*config.logpoly.theta_epsilon:
                 print('%')
-                # break
+                break
                 # [~, D] = eig(H);
                 # diag(D)
                 # # det(inv(H))
@@ -135,7 +135,7 @@ class Logpoly:
             
             theta_new = theta_new + lam * delta_theta
             current_log_likelihood = tmp_log_likelihood
-            print('theta_new = ', theta_new)
+            # print('theta_new = ', theta_new)
 
         logZ = mp_log_integral_exp(mp_compute_poly, np.concatenate([theta.reshape([-1,k+1]), theta_new.reshape([1,-1])]))
         return [theta_new, logZ, current_log_likelihood]
@@ -218,5 +218,5 @@ def _compute_log_likelihood(SS, theta, n):
     #logZ = log_integral_exp( compute_poly, theta, previous_critical_points)
     # ll = -n*logZ + np.inner(theta[-1,:].reshape([-1,]), SS.reshape([-1,]))
     logZ = mp_log_integral_exp( mp_compute_poly, theta)
-    ll = -n * logZ + mp.fdot(theta[-1, :].reshape([-1, ]), SS)
-    return float(ll)
+    ll = -n * logZ + np.inner(theta[-1, :].reshape([-1, ]), SS)
+    return ll

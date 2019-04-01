@@ -1,4 +1,4 @@
-from .tools import mp_compute_poly, mp_log_integral_exp, mp_compute_SS
+from .tools import mp_compute_poly, mp_log_integral_exp, mp_compute_SS #, mp_integral
 import config.logpoly
 import config.general
 import numpy as np
@@ -6,7 +6,7 @@ from tools import get_train_and_validation_index
 from mpmath import mp, mpf
 import mpmath
 import warnings
-from numba import jit
+import scipy.integrate as integrate
 # import os
 # import matplotlib.pyplot as plt
 import sys
@@ -39,13 +39,23 @@ class Logpoly:
             
             # print('.',end='')
             print('.')
+            print('fit_new_facor start')
             sys.stdout.flush()
 
             ## Compute sufficient statistics and constructing the gradient and the Hessian
             ESS = np.array([mpf(0) for i in range(k+1)])
+            print('compute_logZ start')
+            sys.stdout.flush()
             logZ = mp_log_integral_exp(mp_compute_poly, np.concatenate([theta.reshape([-1,k+1]), theta_new.reshape([1,-1])]))
-            
+            print('compute_logZ finish')
+            sys.stdout.flush()
+
+            print('compute_Expectations start')
+            sys.stdout.flush()
             for j in range(k+1):
+                print(j, '- ', end='')
+                sys.stdout.flush()
+
                 if len(theta) > 0:
                     def func(x):
                         return mp_compute_poly(x, theta)[0] * mpmath.power(x,j) * mpmath.exp(mp_compute_poly(x, np.concatenate(
@@ -73,7 +83,11 @@ class Logpoly:
                 if (len(theta) == 0) and (j <= k):
                     tmp[j] = ESS[j]
                 else:
+                    print(j, '- ', end='')
+                    sys.stdout.flush()
                     tmp[j] = mpmath.quad(func, [config.logpoly.x_lbound, config.logpoly.x_ubound])
+
+            print()
 
             H = mpmath.matrix(k+1)
             for i in range(k+1):
@@ -89,6 +103,13 @@ class Logpoly:
             #     eps = 1e-8 + np.min( np.max(np.linalg.eigvals(H[1:,1:])), 0 )
             #     H[1:,1:] -= eps*np.eye(H.shape[0]-1)
 
+            print('compute_Expectations finish')
+            sys.stdout.flush()
+
+
+            print('solve_inversion start')
+            sys.stdout.flush()
+
             if constant_bias is None:
                 delta_theta = mp.lu_solve(H, -grad)
                 lambda2 = (grad.transpose() * delta_theta)[0]
@@ -98,6 +119,9 @@ class Logpoly:
                 lambda2 = (grad[1:].transpose() * delta_theta)[0]
                 delta_theta = np.array(delta_theta)
                 delta_theta = np.concatenate([np.array([mpf(0)]), delta_theta])
+
+            print('solve_inversion finish')
+            sys.stdout.flush()
 
             print('current_log_likelihood = ', current_log_likelihood)
             print('lambda_2 / 2 = ', lambda2/2)
@@ -212,11 +236,19 @@ class LogpolyModelSelector:
 
 
 def _compute_log_likelihood(SS, theta, n):
+    print('_compute_log_likelihood start')
+    sys.stdout.flush()
     if len(theta.shape) == 1:
         theta = theta.reshape([1,-1])
 
     #logZ = log_integral_exp( compute_poly, theta, previous_critical_points)
     # ll = -n*logZ + np.inner(theta[-1,:].reshape([-1,]), SS.reshape([-1,]))
+    print('    compute_logZ start')
+    sys.stdout.flush()
     logZ = mp_log_integral_exp( mp_compute_poly, theta)
+    print('    compute_logZ finish')
+    sys.stdout.flush()
     ll = -n * logZ + np.inner(theta[-1, :].reshape([-1, ]), SS)
+    print('_compute_log_likelihood finish')
+    sys.stdout.flush()
     return ll

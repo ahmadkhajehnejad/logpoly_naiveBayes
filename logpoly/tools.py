@@ -103,6 +103,7 @@ def mp_log_integral_exp( log_func, theta):
 
     # r = np.roots(derivative_poly_coeffs)
     # r = r.real[np.abs(r.imag) < 1e-10]
+    # r = np.unique(r[(r >= x_lbound) & (r <= x_ubound)])
     # r = np.array([mpf(r_i) for r_i in r])
 
     _tmp_ind = derivative_poly_coeffs != 0
@@ -110,7 +111,7 @@ def mp_log_integral_exp( log_func, theta):
         r = np.array([])
     else:
         derivative_poly_coeffs = derivative_poly_coeffs[np.argmax(_tmp_ind):]
-        r = mpmath.polyroots(derivative_poly_coeffs, maxsteps=1000)
+        r = mpmath.polyroots(derivative_poly_coeffs, maxsteps=500, extraprec=mpmath.mp.dps)
         r = np.array([r_i for r_i in r if isinstance(r_i, mpf)])
         r = np.unique(r[ (r >= x_lbound) & (r <= x_ubound)])
 
@@ -135,3 +136,58 @@ def mp_log_integral_exp( log_func, theta):
 
         buff[i] = mp_log_sum_exp(f) + mpmath.log(l/parts) - mpmath.log(2)
     return mp_log_sum_exp(buff)
+
+
+# def mp_integral(func, poly_coefs_1, poly_coefs_2, x_lboud, x_ubound):
+#
+#     # x_lbound, x_ubound = config.logpoly.x_lbound, config.logpoly.x_ubound
+#     if len(theta.shape) == 1:
+#         theta = theta.reshape([1,-1])
+#     all_theta = theta[0, :].reshape([-1]).copy()
+#     d = all_theta.size - 1
+#
+#     for i in range(1,len(theta)):
+#         tmp = mpmath.matrix(theta[i,:].reshape([-1,1])) * mpmath.matrix(all_theta.reshape([1,-1]))
+#         all_theta = np.array([mpf(0) for _ in range(all_theta.size + d)])
+#         for i1 in range(tmp.rows):
+#             for i2 in range(tmp.cols):
+#                 all_theta[i1+i2] += tmp[i1, i2]
+#
+#     d_all = all_theta.size - 1
+#     derivative_poly_coeffs = np.flip(all_theta[1:] * np.arange(1,d_all+1), axis=0)
+#
+#     r = np.roots(derivative_poly_coeffs)
+#     r = r.real[np.abs(r.imag) < 1e-10]
+#     r = np.unique(r[(r >= x_lbound) & (r <= x_ubound)])
+#     r = np.array([mpf(r_i) for r_i in r])
+#
+#     # _tmp_ind = derivative_poly_coeffs != 0
+#     # if not np.any(_tmp_ind):
+#     #     r = np.array([])
+#     # else:
+#     #     derivative_poly_coeffs = derivative_poly_coeffs[np.argmax(_tmp_ind):]
+#     #     r = mpmath.polyroots(derivative_poly_coeffs, maxsteps=10000)
+#     #     r = np.array([r_i for r_i in r if isinstance(r_i, mpf)])
+#     #     r = np.unique(r[ (r >= x_lbound) & (r <= x_ubound)])
+#
+#     if r.size > 0:
+#         br_points = np.unique(np.concatenate([np.array([mpf(x_lbound)]), r.reshape([-1]), np.array([mpf(x_ubound)])]))
+#     else:
+#         br_points = np.array([mpf(x_lbound), mpf(x_ubound)])
+#
+#     buff = np.array([mpf(0) for _ in range(br_points.size -1)])
+#     for i in range(br_points.size - 1):
+#         p1 = br_points[i]
+#         p2 = br_points[i+1]
+#         l = p2 - p1
+#         parts = 1000
+#         delta = l/parts
+#         points = np.arange(p1,p2,delta)
+#         if len(points) < parts + 1:
+#             points = np.concatenate([points, [p2]])
+#
+#         f = log_func(points, theta)
+#         f = np.concatenate([f, f[1:-1]])
+#
+#         buff[i] = mp_log_sum_exp(f) + mpmath.log(l/parts) - mpmath.log(2)
+#     return mp_log_sum_exp(buff)

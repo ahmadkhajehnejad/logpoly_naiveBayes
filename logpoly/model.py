@@ -45,14 +45,12 @@ class Logpoly:
             
             # print('.',end='')
             print('.')
-            print('new_iteration')
+            print('                                 iteration #', iteration)
             sys.stdout.flush()
 
-            print('compute_logZ start')
-            sys.stdout.flush()
-            logZ = mp_log_integral_exp(mp_compute_poly, np.concatenate([theta.reshape([-1,k+1]), theta_new.reshape([1,-1])]))
-            print('compute_logZ finish')
-            sys.stdout.flush()
+            if iteration == 0:
+                current_log_likelihood, logZ = _compute_log_likelihood(SS, np.concatenate(
+                    [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]), n)
 
             ## Compute sufficient statistics and constructing the gradient and the Hessian
 
@@ -172,11 +170,9 @@ class Logpoly:
             ## Line search
             lam = 1
             alpha = 0.49; beta = 0.5
-            current_log_likelihood = _compute_log_likelihood(SS, np.concatenate(
-                [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]), n)
 
             while True:
-                tmp_log_likelihood = _compute_log_likelihood(SS, np.concatenate(
+                tmp_log_likelihood, tmp_logZ = _compute_log_likelihood(SS, np.concatenate(
                     [theta.reshape([-1, k + 1]), (theta_new + lam * delta_theta).reshape([1, -1])]), n)
 
                 if tmp_log_likelihood < current_log_likelihood + alpha * lam * np.inner(grad, delta_theta_subset):
@@ -186,16 +182,16 @@ class Logpoly:
                 else:
                     break
 
-            if tmp_log_likelihood <= current_log_likelihood:
-                # print('    number of iterations: ' + str(iteration+1))
-                print('*')
-                break
+            # if tmp_log_likelihood <= current_log_likelihood:
+            #     # print('    number of iterations: ' + str(iteration+1))
+            #     print('*')
+            #     break
             
             theta_new = theta_new + lam * delta_theta
             current_log_likelihood = tmp_log_likelihood
+            logZ = tmp_logZ
             # print('theta_new = ', theta_new)
 
-        logZ = mp_log_integral_exp(mp_compute_poly, np.concatenate([theta.reshape([-1,k+1]), theta_new.reshape([1,-1])]))
         return [theta_new, logZ, current_log_likelihood]
     
     def logpdf(self, x):
@@ -285,4 +281,4 @@ def _compute_log_likelihood(SS, theta, n):
     ll = -n * logZ + np.inner(theta[-1, :].reshape([-1, ]), SS)
     print('_compute_log_likelihood finish')
     sys.stdout.flush()
-    return ll
+    return ll, logZ

@@ -13,13 +13,8 @@ import sys
 
 class Logpoly:
 
-    def __init__(self, factor_degree, factors_count=1, gradient_size=None):
+    def __init__(self, factor_degree, factors_count=1):
         self.factor_degree = factor_degree
-        self.gradient_size = gradient_size
-        if gradient_size is None:
-            self.stop_count_threshold = 1
-        else:
-            self.stop_count_threshold = 2 * (factor_degree + gradient_size - 1) // gradient_size
         self.factors_count = factors_count
         self.theta = np.array([])
         mp.dps = config.logpoly.mp_dps
@@ -40,7 +35,6 @@ class Logpoly:
         if theta is None:
             theta = np.array([], dtype=float)
 
-        stop_count = 0
         for iteration in range(config.logpoly.Newton_max_iter):
             
             # print('.',end='')
@@ -54,18 +48,10 @@ class Logpoly:
 
             ## Compute sufficient statistics and constructing the gradient and the Hessian
 
-            if self.gradient_size is not None:
-                if constant_bias is None:
-                    grad_dimensions = np.random.choice(np.arange(k+1), self.gradient_size, replace=False)
-                else:
-                    grad_dimensions = np.random.choice(np.arange(1, k+1), self.gradient_size, replace=False)
+            if constant_bias is None:
+                grad_dimensions = np.arange(k+1)
             else:
-                if constant_bias is None:
-                    grad_dimensions = np.arange(k+1)
-                else:
-                    grad_dimensions = np.arange(1, k+1)
-
-            print('grad_dimensions: ', grad_dimensions)
+                grad_dimensions = np.arange(1, k+1)
 
             ESS = np.array([mpf(0) for _ in range(k+1)])
 
@@ -160,12 +146,8 @@ class Logpoly:
             if lambda2 < 0:
                 warnings.warn('lambda_2 < 0')
             if lambda2 / 2 < n*config.logpoly.theta_epsilon:
-                stop_count += 1
-                if stop_count == self.stop_count_threshold:
-                    print('%')
-                    break
-            else:
-                stop_count = 0
+                print('%')
+                break
 
             ## Line search
             lam = 1
@@ -182,10 +164,10 @@ class Logpoly:
                 else:
                     break
 
-            # if tmp_log_likelihood <= current_log_likelihood:
-            #     # print('    number of iterations: ' + str(iteration+1))
-            #     print('*')
-            #     break
+            if tmp_log_likelihood <= current_log_likelihood:
+                # print('    number of iterations: ' + str(iteration+1))
+                print('*')
+                break
             
             theta_new = theta_new + lam * delta_theta
             current_log_likelihood = tmp_log_likelihood

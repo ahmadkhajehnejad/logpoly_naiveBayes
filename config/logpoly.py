@@ -5,3 +5,6 @@ list_factor_degrees = [5, 10, 15, 20]
 use_roots_in_log_integral_exp = True
 mp_dps = 50
 theta_epsilon = 1e-10
+mp_log_integral_exp_parts = 100
+mp_integral_parts = 100
+verbose = False

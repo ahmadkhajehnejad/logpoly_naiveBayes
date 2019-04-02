@@ -51,8 +51,11 @@ def mp_compute_poly(x, theta):
 
 
 def mp_compute_SS(x, k, theta=None):
-    print('mp_compute_SS start')
-    sys.stdout.flush()
+
+    if config.logpoly.verbose:
+        print('mp_compute_SS start')
+        sys.stdout.flush()
+
     n = x.size
 
     if theta is None:
@@ -67,8 +70,9 @@ def mp_compute_SS(x, k, theta=None):
     coef = np.tile(p.reshape([-1, 1]), [1, k + 1])
 
     result = np.sum((base ** exponent) * coef, axis=0)
-    print('mp_compute_SS finish')
-    sys.stdout.flush()
+    if config.logpoly.verbose:
+        print('mp_compute_SS finish')
+        sys.stdout.flush()
     return result
 
     # result = [None] * (k+1)
@@ -101,9 +105,9 @@ def mp_log_integral_exp( log_func, theta):
     d_all = all_theta.size - 1
     derivative_poly_coeffs = np.flip(all_theta[1:] * np.arange(1,d_all+1), axis=0)
 
-
-    print('           poly_roots start')
-    sys.stdout.flush()
+    if config.logpoly.verbose:
+        print('           poly_roots start')
+        sys.stdout.flush()
     # r = np.roots(derivative_poly_coeffs)
     # r = r.real[np.abs(r.imag) < 1e-10]
     # r = np.unique(r[(r >= x_lbound) & (r <= x_ubound)])
@@ -118,8 +122,9 @@ def mp_log_integral_exp( log_func, theta):
         r = np.array([r_i for r_i in r if isinstance(r_i, mpf)])
         r = np.unique(r[ (r >= x_lbound) & (r <= x_ubound)])
 
-    print('           poly_roots finish')
-    sys.stdout.flush()
+    if config.logpoly.verbose:
+        print('           poly_roots finish')
+        sys.stdout.flush()
 
     if r.size > 0:
         br_points = np.unique(np.concatenate([np.array([mpf(x_lbound)]), r.reshape([-1]), np.array([mpf(x_ubound)])]))
@@ -131,7 +136,7 @@ def mp_log_integral_exp( log_func, theta):
         p1 = br_points[i]
         p2 = br_points[i+1]
         l = p2 - p1
-        parts = 100
+        parts = config.logpoly.mp_log_integral_exp_parts
         delta = l/parts
         points = np.arange(p1,p2,delta)
         if len(points) < parts + 1:
@@ -160,7 +165,7 @@ def mp_integral(func, roots, x_lbound, x_ubound):
         p1 = br_points[i]
         p2 = br_points[i+1]
         l = p2 - p1
-        parts = 100
+        parts = config.logpoly.mp_integral_parts
         delta = l/parts
         points = np.arange(p1, p2, delta)
         if len(points) < parts + 1:

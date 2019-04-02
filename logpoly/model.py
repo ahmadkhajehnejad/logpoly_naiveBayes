@@ -36,11 +36,11 @@ class Logpoly:
             theta = np.array([], dtype=float)
 
         for iteration in range(config.logpoly.Newton_max_iter):
-            
-            # print('.',end='')
-            print('.')
-            print('                                 iteration #', iteration)
-            sys.stdout.flush()
+
+            if config.logpoly.verbose:
+                print('.')
+                print('                                 iteration #', iteration)
+                sys.stdout.flush()
 
             if iteration == 0:
                 current_log_likelihood, logZ, roots = _compute_log_likelihood(SS, np.concatenate(
@@ -55,11 +55,13 @@ class Logpoly:
 
             ESS = np.array([mpf(0) for _ in range(k+1)])
 
-            print('compute_Expectations start')
-            sys.stdout.flush()
-            for j in grad_dimensions:
-                print(j, '- ', end='')
+            if config.logpoly.verbose:
+                print('compute_Expectations start')
                 sys.stdout.flush()
+            for j in grad_dimensions:
+                if config.logpoly.verbose:
+                    print(j, '- ', end='')
+                    sys.stdout.flush()
 
                 if len(theta) > 0:
                     def func(x):
@@ -93,8 +95,9 @@ class Logpoly:
                     if tmp[j] is not None:
                         continue
 
-                    print(j, '- ', end='')
-                    sys.stdout.flush()
+                    if config.logpoly.verbose:
+                        print(j, '- ', end='')
+                        sys.stdout.flush()
 
                     if len(theta) > 0:
                         def func(x):
@@ -115,7 +118,8 @@ class Logpoly:
                         #     return mpmath.power(x, j) * mpmath.exp(mp_compute_poly(x, np.concatenate(
                         #         [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]))[0] - logZ)
                         # tmp[j] = mpmath.quad(func, [config.logpoly.x_lbound, config.logpoly.x_ubound])
-            print()
+            if config.logpoly.verbose:
+                print()
 
             H = mpmath.matrix(len(grad_dimensions))
             for i in range(len(grad_dimensions)):
@@ -131,12 +135,13 @@ class Logpoly:
             #     eps = 1e-8 + np.min( np.max(np.linalg.eigvals(H[1:,1:])), 0 )
             #     H[1:,1:] -= eps*np.eye(H.shape[0]-1)
 
-            print('compute_Expectations finish')
-            sys.stdout.flush()
+            if config.logpoly.verbose:
+                print('compute_Expectations finish')
+                sys.stdout.flush()
 
-
-            print('solve_inversion start')
-            sys.stdout.flush()
+            if config.logpoly.verbose:
+                print('solve_inversion start')
+                sys.stdout.flush()
 
             delta_theta_subset = mp.lu_solve(H, -grad)
             lambda2 = (grad.transpose() * delta_theta_subset)[0]
@@ -154,15 +159,21 @@ class Logpoly:
             #     delta_theta = np.array(delta_theta)
             #     delta_theta = np.concatenate([np.array([mpf(0)]), delta_theta])
 
-            print('solve_inversion finish')
-            sys.stdout.flush()
+            if config.logpoly.verbose:
+                print('solve_inversion finish')
+                sys.stdout.flush()
 
-            print('current_log_likelihood = ', current_log_likelihood)
-            print('lambda_2 / 2 = ', lambda2/2)
+            if config.logpoly.verbose:
+                print('current_log_likelihood = ', current_log_likelihood)
+                print('lambda_2 / 2 = ', lambda2/2)
+                sys.stdout.flush()
+
             if lambda2 < 0:
                 warnings.warn('lambda_2 < 0')
             if lambda2 / 2 < n*config.logpoly.theta_epsilon:
-                print('%')
+                if config.logpoly.verbose:
+                    print('%')
+                    sys.stdout.flush()
                 break
 
             ## Line search
@@ -174,22 +185,23 @@ class Logpoly:
                     [theta.reshape([-1, k + 1]), (theta_new + lam * delta_theta).reshape([1, -1])]), n)
 
                 if tmp_log_likelihood < current_log_likelihood + alpha * lam * np.inner(grad, delta_theta_subset):
-                    print('+', end='')
-                    sys.stdout.flush()
+                    if config.logpoly.verbose:
+                        print('+', end='')
+                        sys.stdout.flush()
                     lam = lam * beta;
                 else:
                     break
 
             if tmp_log_likelihood <= current_log_likelihood:
-                # print('    number of iterations: ' + str(iteration+1))
-                print('*')
+                if config.logpoly.verbose:
+                    print('*')
+                    sys.stdout.flush()
                 break
             
             theta_new = theta_new + lam * delta_theta
             current_log_likelihood = tmp_log_likelihood
             logZ = tmp_logZ
             roots = tmp_roots
-            # print('theta_new = ', theta_new)
 
         return [theta_new, logZ, current_log_likelihood]
     
@@ -265,19 +277,23 @@ class LogpolyModelSelector:
 
 
 def _compute_log_likelihood(SS, theta, n):
-    print('_compute_log_likelihood start')
-    sys.stdout.flush()
+    if config.logpoly.verbose:
+        print('_compute_log_likelihood start')
+        sys.stdout.flush()
     if len(theta.shape) == 1:
         theta = theta.reshape([1,-1])
 
     #logZ = log_integral_exp( compute_poly, theta, previous_critical_points)
     # ll = -n*logZ + np.inner(theta[-1,:].reshape([-1,]), SS.reshape([-1,]))
-    print('    compute_logZ start')
-    sys.stdout.flush()
+    if config.logpoly.verbose:
+        print('    compute_logZ start')
+        sys.stdout.flush()
     logZ, roots = mp_log_integral_exp( mp_compute_poly, theta)
-    print('    compute_logZ finish')
-    sys.stdout.flush()
+    if config.logpoly.verbose:
+        print('    compute_logZ finish')
+        sys.stdout.flush()
     ll = -n * logZ + np.inner(theta[-1, :].reshape([-1, ]), SS)
-    print('_compute_log_likelihood finish')
-    sys.stdout.flush()
+    if config.logpoly.verbose:
+        print('_compute_log_likelihood finish')
+        sys.stdout.flush()
     return ll, logZ, roots

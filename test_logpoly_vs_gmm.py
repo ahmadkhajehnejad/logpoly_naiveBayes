@@ -33,7 +33,7 @@ if __name__ == '__main__':
     #samples = samples[:n]
     scaled_samples = scale_data(samples, min_x, max_x)
     print(np.min(scaled_samples), np.max(scaled_samples))
-    k = 18
+    k = 20
     logpoly = Logpoly(k, factors_count=1)
     print('fit start')
     sys.stdout.flush()

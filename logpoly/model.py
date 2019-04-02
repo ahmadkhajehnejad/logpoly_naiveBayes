@@ -41,6 +41,7 @@ class Logpoly:
             theta = np.array([], dtype=float)
 
         stop_count = 0
+        stop_count_no_loglikelihood_improvement = 0
         for iteration in range(config.logpoly.Newton_max_iter):
             
             # print('.',end='')
@@ -182,10 +183,14 @@ class Logpoly:
                 else:
                     break
 
-            # if tmp_log_likelihood <= current_log_likelihood:
-            #     # print('    number of iterations: ' + str(iteration+1))
-            #     print('*')
-            #     break
+            if tmp_log_likelihood <= current_log_likelihood:
+                stop_count_no_loglikelihood_improvement += 1
+                if stop_count_no_loglikelihood_improvement == self.stop_count_threshold:
+                    # print('    number of iterations: ' + str(iteration+1))
+                    print('*')
+                    break
+            else:
+                stop_count_no_loglikelihood_improvement = 0
             
             theta_new = theta_new + lam * delta_theta
             current_log_likelihood = tmp_log_likelihood

@@ -1,4 +1,4 @@
-from .tools import mp_compute_poly, mp_log_integral_exp, mp_compute_SS #, mp_integral
+from .tools import mp_compute_poly, mp_log_integral_exp, mp_compute_SS, mp_integral
 import config.logpoly
 import config.general
 import numpy as np
@@ -43,7 +43,7 @@ class Logpoly:
             sys.stdout.flush()
 
             if iteration == 0:
-                current_log_likelihood, logZ = _compute_log_likelihood(SS, np.concatenate(
+                current_log_likelihood, logZ, roots = _compute_log_likelihood(SS, np.concatenate(
                     [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]), n)
 
             ## Compute sufficient statistics and constructing the gradient and the Hessian
@@ -63,14 +63,22 @@ class Logpoly:
 
                 if len(theta) > 0:
                     def func(x):
-                        return mp_compute_poly(x, theta)[0] * mpmath.power(x,j) * mpmath.exp(mp_compute_poly(x, np.concatenate(
-                            [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]))[0] - logZ)
+                            return mp_compute_poly(x, theta)[0] * mpmath.power(x, j) * mpmath.exp(
+                                mp_compute_poly(x, np.concatenate(
+                                    [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]))[0] - logZ)
+
+                    ESS[j] = mpmath.quad(func, [config.logpoly.x_lbound, config.logpoly.x_ubound])
                 else:
                     def func(x):
-                        return mpmath.power(x, j) * mpmath.exp(mp_compute_poly(x, np.concatenate(
-                            [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]))[0] - logZ)
-                    
-                ESS[j] = mpmath.quad(func, [config.logpoly.x_lbound, config.logpoly.x_ubound])
+                        return (x ** j) * (mpmath.exp(1) * np.ones(x.shape)) ** (mp_compute_poly(x, np.concatenate(
+                            [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])])) - logZ)
+
+                    ESS[j] = mp_integral(func, np.unique(np.concatenate([np.array([mpf(0)]), roots])),
+                                         config.logpoly.x_lbound, config.logpoly.x_ubound)
+                    # def func(x):
+                    #         return mpmath.power(x, j) * mpmath.exp(mp_compute_poly(x, np.concatenate(
+                    #             [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]))[0] - logZ)
+                    # ESS[j] = mpmath.quad(func, [config.logpoly.x_lbound, config.logpoly.x_ubound])
 
             ESS = mpmath.matrix(ESS[grad_dimensions])
 
@@ -85,20 +93,28 @@ class Logpoly:
                     if tmp[j] is not None:
                         continue
 
+                    print(j, '- ', end='')
+                    sys.stdout.flush()
+
                     if len(theta) > 0:
                         def func(x):
                             return (mp_compute_poly(x, theta)[0] ** 2) * mpmath.power(x, j) * mpmath.exp(
                                 mp_compute_poly(x, np.concatenate(
                                     [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]))[0] - logZ)
+
+                        tmp[j] = mpmath.quad(func, [config.logpoly.x_lbound, config.logpoly.x_ubound])
+
                     else:
                         def func(x):
-                            return mpmath.power(x, j) * mpmath.exp(mp_compute_poly(x, np.concatenate(
-                                [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]))[0] - logZ)
+                            return (x ** j) * (mpmath.exp(1) * np.ones(x.shape)) ** (mp_compute_poly(x, np.concatenate(
+                                [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])])) - logZ)
 
-                    print(j, '- ', end='')
-                    sys.stdout.flush()
-                    tmp[j] = mpmath.quad(func, [config.logpoly.x_lbound, config.logpoly.x_ubound])
-
+                        tmp[j] = mp_integral(func, np.unique(np.concatenate([np.array([mpf(0)]), roots])),
+                                             config.logpoly.x_lbound, config.logpoly.x_ubound)
+                        # def func(x):
+                        #     return mpmath.power(x, j) * mpmath.exp(mp_compute_poly(x, np.concatenate(
+                        #         [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]))[0] - logZ)
+                        # tmp[j] = mpmath.quad(func, [config.logpoly.x_lbound, config.logpoly.x_ubound])
             print()
 
             H = mpmath.matrix(len(grad_dimensions))
@@ -154,7 +170,7 @@ class Logpoly:
             alpha = 0.49; beta = 0.5
 
             while True:
-                tmp_log_likelihood, tmp_logZ = _compute_log_likelihood(SS, np.concatenate(
+                tmp_log_likelihood, tmp_logZ, tmp_roots = _compute_log_likelihood(SS, np.concatenate(
                     [theta.reshape([-1, k + 1]), (theta_new + lam * delta_theta).reshape([1, -1])]), n)
 
                 if tmp_log_likelihood < current_log_likelihood + alpha * lam * np.inner(grad, delta_theta_subset):
@@ -172,6 +188,7 @@ class Logpoly:
             theta_new = theta_new + lam * delta_theta
             current_log_likelihood = tmp_log_likelihood
             logZ = tmp_logZ
+            roots = tmp_roots
             # print('theta_new = ', theta_new)
 
         return [theta_new, logZ, current_log_likelihood]
@@ -257,10 +274,10 @@ def _compute_log_likelihood(SS, theta, n):
     # ll = -n*logZ + np.inner(theta[-1,:].reshape([-1,]), SS.reshape([-1,]))
     print('    compute_logZ start')
     sys.stdout.flush()
-    logZ = mp_log_integral_exp( mp_compute_poly, theta)
+    logZ, roots = mp_log_integral_exp( mp_compute_poly, theta)
     print('    compute_logZ finish')
     sys.stdout.flush()
     ll = -n * logZ + np.inner(theta[-1, :].reshape([-1, ]), SS)
     print('_compute_log_likelihood finish')
     sys.stdout.flush()
-    return ll, logZ
+    return ll, logZ, roots

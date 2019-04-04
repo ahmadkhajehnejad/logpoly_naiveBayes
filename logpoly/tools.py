@@ -176,3 +176,36 @@ def mp_integral(func, roots, x_lbound, x_ubound):
 
         buff[i] = np.sum(f) * (l/parts) / 2
     return np.sum(buff)
+
+
+def mp_moments(func, max_power, roots, x_lbound, x_ubound):
+
+    roots = np.unique(roots[(roots >= x_lbound) & (roots <= x_ubound)])
+
+    if roots.size > 0:
+        br_points = np.unique(np.concatenate([np.array([mpf(x_lbound)]), roots.reshape([-1]), np.array([mpf(x_ubound)])]))
+    else:
+        br_points = np.array([mpf(x_lbound), mpf(x_ubound)])
+
+    buff = np.tile( np.array([mpf(0)]).reshape([1,1]), [max_power, br_points.size-1])
+
+    for i in range(br_points.size - 1):
+        # print('^', end='')
+        # sys.stdout.flush()
+        p1 = br_points[i]
+        p2 = br_points[i+1]
+        l = p2 - p1
+        parts = config.logpoly.mp_integral_parts
+        delta = l/parts
+        points = np.arange(p1, p2, delta)
+        if len(points) < parts + 1:
+            points = np.concatenate([points, [p2]])
+
+        f = func(points)
+
+        g = f
+        for j in range(max_power):
+            tmp = 2 * np.sum(g[1:-1]) + g[0] + g[-1]
+            buff[j,i] = tmp * (l/parts) / 2
+            g = points * g
+    return np.sum(buff, axis=1)

@@ -1,4 +1,4 @@
-from .tools import mp_compute_poly, mp_log_integral_exp, mp_compute_SS, mp_integral
+from .tools import mp_compute_poly, mp_log_integral_exp, mp_compute_SS, mp_integral, mp_moments
 import config.logpoly
 import config.general
 import numpy as np
@@ -53,53 +53,55 @@ class Logpoly:
             else:
                 grad_dimensions = np.arange(1, k+1)
 
-            ESS = np.array([mpf(0) for _ in range(k+1)])
+            #######################
 
-            if config.logpoly.verbose:
-                print('compute_Expectations start')
-                sys.stdout.flush()
-            for j in grad_dimensions:
+            if len(theta) == 0:
                 if config.logpoly.verbose:
-                    print(j, '- ', end='')
+                    print('compute_Expectations start')
                     sys.stdout.flush()
 
-                if len(theta) > 0:
+                def func(x):
+                    return (mpmath.exp(1) * np.ones(x.shape)) ** (mp_compute_poly(x, np.concatenate(
+                        [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])])) - logZ)
+
+                tmp = mp_moments(func, 2*k+1, np.unique(np.concatenate([np.array([mpf(0)]), roots])),
+                                     config.logpoly.x_lbound, config.logpoly.x_ubound)
+                ESS = mpmath.matrix(tmp[grad_dimensions])
+            else:
+
+                ESS = np.array([mpf(0) for _ in range(k+1)])
+
+                if config.logpoly.verbose:
+                    print('compute_Expectations start')
+                    sys.stdout.flush()
+                for j in grad_dimensions:
+                    if config.logpoly.verbose:
+                        print(j, '- ', end='')
+                        sys.stdout.flush()
+
                     def func(x):
                             return mp_compute_poly(x, theta)[0] * mpmath.power(x, j) * mpmath.exp(
                                 mp_compute_poly(x, np.concatenate(
                                     [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]))[0] - logZ)
 
                     ESS[j] = mpmath.quad(func, [config.logpoly.x_lbound, config.logpoly.x_ubound])
-                else:
-                    def func(x):
-                        return (x ** j) * (mpmath.exp(1) * np.ones(x.shape)) ** (mp_compute_poly(x, np.concatenate(
-                            [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])])) - logZ)
 
-                    ESS[j] = mp_integral(func, np.unique(np.concatenate([np.array([mpf(0)]), roots])),
-                                         config.logpoly.x_lbound, config.logpoly.x_ubound)
-                    # def func(x):
-                    #         return mpmath.power(x, j) * mpmath.exp(mp_compute_poly(x, np.concatenate(
-                    #             [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]))[0] - logZ)
-                    # ESS[j] = mpmath.quad(func, [config.logpoly.x_lbound, config.logpoly.x_ubound])
+                ESS = mpmath.matrix(ESS[grad_dimensions])
 
-            ESS = mpmath.matrix(ESS[grad_dimensions])
-
-            tmp = np.array([None for _ in range(2*k+1)])
-            if len(theta) == 0:
+                tmp = np.array([None for _ in range(2*k+1)])
                 tmp[grad_dimensions] = np.array(ESS)
 
-            for j1 in grad_dimensions:
-                for j2 in grad_dimensions:
-                    j = j1 + j2
+                for j1 in grad_dimensions:
+                    for j2 in grad_dimensions:
+                        j = j1 + j2
 
-                    if tmp[j] is not None:
-                        continue
+                        if tmp[j] is not None:
+                            continue
 
-                    if config.logpoly.verbose:
-                        print(j, '- ', end='')
-                        sys.stdout.flush()
+                        if config.logpoly.verbose:
+                            print(j, '- ', end='')
+                            sys.stdout.flush()
 
-                    if len(theta) > 0:
                         def func(x):
                             return (mp_compute_poly(x, theta)[0] ** 2) * mpmath.power(x, j) * mpmath.exp(
                                 mp_compute_poly(x, np.concatenate(
@@ -107,19 +109,8 @@ class Logpoly:
 
                         tmp[j] = mpmath.quad(func, [config.logpoly.x_lbound, config.logpoly.x_ubound])
 
-                    else:
-                        def func(x):
-                            return (x ** j) * (mpmath.exp(1) * np.ones(x.shape)) ** (mp_compute_poly(x, np.concatenate(
-                                [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])])) - logZ)
-
-                        tmp[j] = mp_integral(func, np.unique(np.concatenate([np.array([mpf(0)]), roots])),
-                                             config.logpoly.x_lbound, config.logpoly.x_ubound)
-                        # def func(x):
-                        #     return mpmath.power(x, j) * mpmath.exp(mp_compute_poly(x, np.concatenate(
-                        #         [theta.reshape([-1, k + 1]), theta_new.reshape([1, -1])]))[0] - logZ)
-                        # tmp[j] = mpmath.quad(func, [config.logpoly.x_lbound, config.logpoly.x_ubound])
-            if config.logpoly.verbose:
-                print()
+                if config.logpoly.verbose:
+                    print()
 
             H = mpmath.matrix(len(grad_dimensions))
             for i in range(len(grad_dimensions)):

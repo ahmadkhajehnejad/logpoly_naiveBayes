@@ -11,7 +11,7 @@ x = logpoly.tools.scale_data(x, min_x, max_x)
 n = len(x)
 poly_degree = 18
 SS = compute_SS(x, poly_degree)
-logpoly_density_estimator = Logpoly(poly_degree)
+logpoly_density_estimator = Logpoly()
 logpoly_density_estimator.fit(SS, n)
 
 print(np.sum(logpoly_density_estimator.logpdf(x)))

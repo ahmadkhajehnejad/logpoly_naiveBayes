@@ -24,33 +24,24 @@ def mp_compute_poly(x, theta):
         else:
             x = np.array([x])
 
-    if len(theta.shape) == 1:
-        theta = theta.reshape([1, -1])
-
-    k = theta.shape[1] - 1
-    t = theta.shape[0]
+    k = theta.size - 1
     n = x.size
 
-    theta3d = np.tile(np.expand_dims(theta, 2), [1, 1, n])
-    x3d = np.tile(np.array([mpf(x_i) for x_i in x]).reshape([1, 1, n]), [t, k + 1, 1])
-    exp3d = np.tile(np.arange(k + 1).reshape([1, k + 1, 1]), [t, 1, n])
+    theta2d = np.tile(theta.reshape([1,-1]), [n,1])
+    x_mpf = np.array([mpf(x_i) for x_i in x])
 
-    return np.prod(np.sum((x3d ** exp3d) * theta3d, axis=1), axis=0)
+    tmp = np.tile(np.array([[mpf(1)]]), [n, k+1])
+    for i in range(1,k+1):
+        tmp[:, i] = tmp[:, i-1] * x_mpf
 
-    # result = [None] * n
-    # for n_i in range(n):
-    #     sums = [None] * t
-    #     for t_i in range(t):
-    #         tmp = [None] * (k + 1)
-    #         for k_i in range(k + 1):
-    #             tmp[k_i] = mpmath.power(x[n_i], k_i) * theta[t_i, k_i]
-    #         sums[t_i] = mpmath.fsum(tmp)
-    #     result[n_i] = mpmath.fprod(sums)
-    #
-    # return result
+    # x2d = np.tile(np.array([mpf(x_i) for x_i in x]).reshape([n,1]), [1, k+1])
+    # exp2d = np.tile(np.arange(k + 1).reshape([1, k + 1]), [n,1])
+    #tmp = (x2d ** exp2d)
+
+    return np.sum(tmp * theta2d, axis=1)
 
 
-def mp_compute_SS(x, k, theta=None):
+def mp_compute_SS(x, k):
 
     if config.logpoly.verbose:
         print('mp_compute_SS start')
@@ -58,52 +49,24 @@ def mp_compute_SS(x, k, theta=None):
 
     n = x.size
 
-    if theta is None:
-        p = np.ones([n])
-    elif theta.shape[0] == 0:
-        p = np.ones([n])
-    else:
-        p = mp_compute_poly(x, theta)
+    x_mpf = np.array([mpf(x_i) for x_i in x])
 
-    exponent = np.tile(np.arange(k + 1).reshape([1, -1]), [n, 1])
-    base = np.tile(np.array([mpf(x_i) for x_i in x]).reshape([-1, 1]), [1, k + 1])
-    coef = np.tile(p.reshape([-1, 1]), [1, k + 1])
+    tmp = np.tile(np.array([[mpf(1)]]), [n, k + 1])
+    for i in range(1, k + 1):
+        tmp[:, i] = tmp[:, i - 1] * x_mpf
 
-    result = np.sum((base ** exponent) * coef, axis=0)
+    result = np.sum(tmp, axis=0)
     if config.logpoly.verbose:
         print('mp_compute_SS finish')
         sys.stdout.flush()
     return result
 
-    # result = [None] * (k+1)
-    # for k_i in range(k+1):
-    #     tmp = [None] * n
-    #     for n_i in range(n):
-    #         tmp[n_i] = p[n_i] * mpmath.power(x[n_i], k_i)
-    #     sys.stdout.flush()
-    #     result[k_i] = mpmath.fsum(tmp)
-    #
-    # print('mp_compute_SS finish')
-    # sys.stdout.flush()
-    # return result
-
 def mp_log_integral_exp( log_func, theta):
 
     x_lbound, x_ubound = config.logpoly.x_lbound, config.logpoly.x_ubound
-    if len(theta.shape) == 1:
-        theta = theta.reshape([1,-1])
-    all_theta = theta[0, :].reshape([-1]).copy()
-    d = all_theta.size - 1
 
-    for i in range(1,len(theta)):
-        tmp = mpmath.matrix(theta[i,:].reshape([-1,1])) * mpmath.matrix(all_theta.reshape([1,-1]))
-        all_theta = np.array([mpf(0) for _ in range(all_theta.size + d)])
-        for i1 in range(tmp.rows):
-            for i2 in range(tmp.cols):
-                all_theta[i1+i2] += tmp[i1, i2]
-
-    d_all = all_theta.size - 1
-    derivative_poly_coeffs = np.flip(all_theta[1:] * np.arange(1,d_all+1), axis=0)
+    k = theta.size - 1
+    derivative_poly_coeffs = np.flip(theta[1:] * np.arange(1,k+1))
 
     if config.logpoly.verbose:
         print('           poly_roots start')

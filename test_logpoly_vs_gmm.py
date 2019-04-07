@@ -34,10 +34,10 @@ if __name__ == '__main__':
     scaled_samples = scale_data(samples, min_x, max_x)
     print(np.min(scaled_samples), np.max(scaled_samples))
     k = 20
-    logpoly = Logpoly(k, factors_count=1)
+    logpoly = Logpoly()
     print('fit start')
     sys.stdout.flush()
-    logpoly.fit(scaled_samples, n)
+    logpoly.fit(mp_compute_SS(scaled_samples, k), n)
     print('fit finished')
     print('loglikelihood: ', logpoly.current_log_likelihood)
     sys.stdout.flush()

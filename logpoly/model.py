@@ -17,7 +17,7 @@ class Logpoly:
         pass
 
 
-    def fit(self, SS, n, constant_bias = None, plot=False):
+    def fit(self, SS, n, constant_bias = 1, plot=False):
 
         k = SS.size - 1
 

@@ -1,8 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from logpoly.model import Logpoly, _compute_log_likelihood
+from logpoly.model import Logpoly, _compute_log_likelihood, LogpolyModelSelector
 from logpoly.tools import mp_compute_SS, scale_data
 import config.logpoly
+from Gaussian_mixture_model.model import GaussianMixtureModel
 import sys
 
 
@@ -18,14 +19,47 @@ def generate_samples(n, pi, mu, sigma):
 
 if __name__ == '__main__':
 
-    pi = np.array([9/26, 2/26, 3/26, 4/26, 1/26, 7/26])
-    mu = np.array([1, 20, 50, 85, 130, 160])
-    sigma = np.array([1, 2, 3, 1, 2, 3])
     n = 100000
-    min_x = -20
-    max_x = 180
+    ll = 0.2
+    rr =  0.8
+    samples = np.random.uniform(ll, rr, n)
+    print(np.min(samples))
+    print(np.max(samples))
+    min_x = 0
+    max_x = 1
 
-    samples = generate_samples(n, pi, mu, sigma)
+    # pi_tmp = np.array([9, 2, 3, 4, 1, 7, 2])
+    # pi = pi_tmp / np.sum(pi_tmp)
+    # mu = np.array([1, 20, 50, 85, 130, 160, 80])
+    # sigma = np.array([1, 2, 3, 1, 2, 3, 40])
+    # n = 100000
+    # min_x = -80
+    # max_x = 250
+
+    # pi = np.array([9/26, 2/26, 3/26, 4/26, 1/26, 7/26])
+    # mu = np.array([1, 20, 50, 85, 130, 160])
+    # sigma = np.array([1, 2, 3, 1, 2, 3])
+    # n = 100000
+    # min_x = -20
+    # max_x = 180
+
+    # pi = np.array([28/40, 3/40, 3/40, 3/40, 3/40])
+    # mu = np.array([0, 50, 100, 150, 200])
+    # sigma = np.array([1, 1, 1, 1, 1])
+    # n = 100000
+    # min_x = -50
+    # max_x = 250
+
+    # n = 100000
+    # samples = 10 * (np.random.rand(n) - 0.5)**3
+    # print(np.min(samples))
+    # print(np.max(samples))
+    # min_x = -1.5
+    # max_x = 1.5
+
+
+
+    # samples = generate_samples(n, pi, mu, sigma)
 
     print(np.min(samples), np.max(samples))
 
@@ -33,7 +67,7 @@ if __name__ == '__main__':
     #samples = samples[:n]
     scaled_samples = scale_data(samples, min_x, max_x)
     print(np.min(scaled_samples), np.max(scaled_samples))
-    k = 20
+    k = 6
     logpoly = Logpoly()
     print('fit start')
     sys.stdout.flush()
@@ -41,15 +75,29 @@ if __name__ == '__main__':
     print('fit finished')
     print('loglikelihood: ', logpoly.current_log_likelihood)
     sys.stdout.flush()
-    ticks = np.arange(min_x, max_x, 0.1)
-    y_ticks = np.exp(logpoly.logpdf(scale_data(ticks, min_x, max_x))) / ((max_x - min_x) / 0.9)
+    ticks = np.arange(min_x, max_x, 0.01)
+    y_ticks_logpoly = np.exp(logpoly.logpdf(scale_data(ticks, min_x, max_x))) / ((max_x - min_x) / 0.9)
 
 
-    print(scale_data(ticks, min_x, max_x))
+    print()
+    print('GMM:')
+    sys.stdout.flush()
+    print('fit start')
+    gmm = GaussianMixtureModel(scaled_samples, num_components=2)
+    print('fit finished')
+    sys.stdout.flush()
 
-    print(np.sum(np.exp(logpoly.logpdf(np.arange(0, 1, 0.001)))) / 1000)
-    print(ticks)
 
-    plt.hist(samples, bins=2000, density=True)
-    plt.plot(ticks, y_ticks, color='green')
+    # print(scale_data(ticks, min_x, max_x))
+
+    # # print(np.sum(np.exp(logpoly.logpdf(np.arange(0, 1, 0.001)))) / 1000)
+    # # print(ticks)
+    y_ticks_gmm = np.exp(gmm.logpdf(scale_data(ticks, min_x, max_x))) / ((max_x - min_x) / 0.9)
+
+
+
+    #plt.hist(samples, bins=2000, density=True)
+    plt.plot([ll, ll, rr, rr], [0, 1/(rr-ll), 1/(rr-ll), 0], color='blue')
+    plt.plot(ticks, y_ticks_logpoly, color='green')
+    plt.plot(ticks, y_ticks_gmm, color='red')
     plt.show()

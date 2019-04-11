@@ -7,8 +7,9 @@ from tools import get_train_and_validation_index
 class GaussianMixtureModel:
 
     def __init__(self, data, num_components):
-        self.gmm = GMM(n_components=num_components, covariance_type='full', max_iter=config.gmm.max_iter, n_init=config.gmm.n_init)
+        self.gmm = GMM(n_components=num_components, covariance_type='full', max_iter=config.gmm.max_iter, n_init=config.gmm.n_init, tol=config.gmm.tol, init_params=config.gmm.init_params)
         self.gmm.fit(np.array(data).reshape([-1,1]))
+        print('##################', self.gmm.converged_, self.gmm.n_iter_)
 
 
     def logpdf(self, x):

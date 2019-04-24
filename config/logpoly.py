@@ -1,10 +1,12 @@
 x_lbound = 0
 x_ubound = 1
+left_margin = 0.05
+right_margin=0.05
 Newton_max_iter = 20
 list_factor_degrees = [5, 10, 15, 20]
 use_roots_in_log_integral_exp = True
-mp_dps = 50
-theta_epsilon = 1e-10
-mp_log_integral_exp_parts = 100
-mp_integral_parts = 100
+mp_dps = 50 # 100
+theta_epsilon = 0 # 1e-10
+mp_log_integral_exp_parts = 100 # 200
+mp_integral_parts = 100 # 200
 verbose = False

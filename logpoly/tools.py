@@ -5,9 +5,9 @@ import mpmath
 import sys
 
 def scale_data(data, min_value, max_value):
-    return ((data - min_value) / (max_value - min_value)) * (
-                0.9 * (config.logpoly.x_ubound - config.logpoly.x_lbound)) + config.logpoly.x_lbound + (
-                         0.05 * (config.logpoly.x_ubound - config.logpoly.x_lbound))
+    return ((data - min_value) / (max_value - min_value)) * \
+           ((1-(config.logpoly.right_margin + config.logpoly.left_margin)) * (config.logpoly.x_ubound - config.logpoly.x_lbound)) + \
+            config.logpoly.x_lbound + (config.logpoly.left_margin * (config.logpoly.x_ubound - config.logpoly.x_lbound))
 
 
 def mp_log_sum_exp(a):

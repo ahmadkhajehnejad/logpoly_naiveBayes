@@ -156,6 +156,11 @@ class LogpolyModelSelector:
     def select_model(self, data):
         n_total = data.shape[0]
 
+        if len(self.list_factor_degrees) == 1:
+            SS = mp_compute_SS(data, self.list_factor_degrees[0])
+            logpoly_model = Logpoly()
+            logpoly_model.fit(SS,n_total)
+            return logpoly_model
 
         if config.classifier.smart_validation:
             ind = np.argsort(data)

@@ -5,6 +5,8 @@ from logpoly.tools import mp_compute_SS, scale_data
 import config.logpoly
 from Gaussian_mixture_model.model import GaussianMixtureModel
 import sys
+import pandas as pd
+
 
 
 def generate_samples(n, pi, mu, sigma):
@@ -16,17 +18,37 @@ def generate_samples(n, pi, mu, sigma):
 
     return samples
 
-
 if __name__ == '__main__':
+
 
     n = 100000
     ll = 0.2
+    md = 0.7
     rr =  0.8
-    samples = np.random.uniform(ll, rr, n)
+    samples = np.random.triangular(ll, md, rr, n)
     print(np.min(samples))
     print(np.max(samples))
     min_x = 0
     max_x = 1
+
+
+    # n = 100000
+    # ll = 0.2
+    # rr =  0.8
+    # samples = np.random.uniform(ll, rr, n)
+    # print(np.min(samples))
+    # print(np.max(samples))
+    # min_x = 0
+    # max_x = 1
+
+
+    # n = 100000
+    # samples = np.random.exponential(10, n)
+    # print(np.min(samples))
+    # print(np.max(samples))
+    # min_x = np.min(samples)
+    # max_x = np.max(samples)
+
 
     # pi_tmp = np.array([9, 2, 3, 4, 1, 7, 2])
     # pi = pi_tmp / np.sum(pi_tmp)
@@ -50,6 +72,14 @@ if __name__ == '__main__':
     # min_x = -50
     # max_x = 250
 
+    # pi_tmp = np.array([1, 1, 1])
+    # pi = pi_tmp / np.sum(pi_tmp)
+    # mu = np.array([0, 10, 19])
+    # sigma = np.array([10, 10, 10])
+    # n = 100000
+    # min_x = -50
+    # max_x = 70
+
     # n = 100000
     # samples = 10 * (np.random.rand(n) - 0.5)**3
     # print(np.min(samples))
@@ -63,41 +93,36 @@ if __name__ == '__main__':
 
     print(np.min(samples), np.max(samples))
 
-    #n = 1000000
-    #samples = samples[:n]
     scaled_samples = scale_data(samples, min_x, max_x)
     print(np.min(scaled_samples), np.max(scaled_samples))
-    k = 6
-    logpoly = Logpoly()
-    print('fit start')
-    sys.stdout.flush()
-    logpoly.fit(mp_compute_SS(scaled_samples, k), n)
-    print('fit finished')
-    print('loglikelihood: ', logpoly.current_log_likelihood)
-    sys.stdout.flush()
     ticks = np.arange(min_x, max_x, 0.01)
-    y_ticks_logpoly = np.exp(logpoly.logpdf(scale_data(ticks, min_x, max_x))) / ((max_x - min_x) / 0.9)
 
+    avgLL_true = np.mean(triangular_pdf(samples, ll, md, rr))
 
-    print()
-    print('GMM:')
-    sys.stdout.flush()
-    print('fit start')
-    gmm = GaussianMixtureModel(scaled_samples, num_components=2)
-    print('fit finished')
-    sys.stdout.flush()
+    # plt.plot([ll, ll, rr, rr], [0, 1 / (rr - ll), 1 / (rr - ll), 0], color='blue')
+    plt.plot([ll, md, rr], [0, 2 / (rr - ll), 0], color='blue')
+    # plt.hist(samples, bins=2000, density=True)
+    # gmm_avgll = []
+    for k, c in [(2,'red'), (3,'red'), (4,'red'), (5,'red'), (6,'red')]: #[(2,'orange'), (4,'red'), (6,'black')]:
+        print('GMM - k:', k)
+        gmm = GaussianMixtureModel(scaled_samples, num_components=k)
+        print('gmm KL: ', avgLL_true - np.mean(gmm.logpdf(scaled_samples)))
+        # gmm_avgll.append(np.sum(gmm.logpdf(scaled_samples)))
+        sys.stdout.flush()
 
+        y_ticks_gmm = np.exp(gmm.logpdf(scale_data(ticks, min_x, max_x))) / ((max_x - min_x) / (1-(config.logpoly.right_margin + config.logpoly.left_margin)))
 
-    # print(scale_data(ticks, min_x, max_x))
+        plt.plot(ticks, y_ticks_gmm, color=c)
 
-    # # print(np.sum(np.exp(logpoly.logpdf(np.arange(0, 1, 0.001)))) / 1000)
-    # # print(ticks)
-    y_ticks_gmm = np.exp(gmm.logpdf(scale_data(ticks, min_x, max_x))) / ((max_x - min_x) / 0.9)
+    # print('GMM mean-avgll:', np.mean(gmm_avgll))
 
+    for k, c in [(5,'green'), (8,'green'), (11,'green'), (14,'green'), (17,'green')]:
+        logpoly = Logpoly()
+        print('logpoly - k:', k)
+        logpoly.fit(mp_compute_SS(scaled_samples, k), n)
+        print('logpoly KL: ', avgLL_true - (logpoly.current_log_likelihood)/n)
+        sys.stdout.flush()
+        y_ticks_logpoly = np.exp(logpoly.logpdf(scale_data(ticks, min_x, max_x))) / ((max_x - min_x) / (1-(config.logpoly.right_margin + config.logpoly.left_margin)))
+        plt.plot(ticks, y_ticks_logpoly, color=c)
 
-
-    #plt.hist(samples, bins=2000, density=True)
-    plt.plot([ll, ll, rr, rr], [0, 1/(rr-ll), 1/(rr-ll), 0], color='blue')
-    plt.plot(ticks, y_ticks_logpoly, color='green')
-    plt.plot(ticks, y_ticks_gmm, color='red')
     plt.show()

@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from logpoly.model import Logpoly, _compute_log_likelihood, LogpolyModelSelector
 from logpoly.tools import mp_compute_SS, scale_data
 import config.logpoly
@@ -78,7 +78,7 @@ if __name__ == '__main__':
         processes.append(Process(target=fit_thread_func,
                                  args=[shared_space, SS_train[:k+1], n_train, scaled_samples_validation, scaled_samples_test], daemon=True))
 
-    max_num_processes = 3
+    max_num_processes = 30
     head = np.min([max_num_processes, len(processes)])
     for i in range(head):
         processes[i].start()

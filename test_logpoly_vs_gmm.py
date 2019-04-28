@@ -6,7 +6,7 @@ import config.logpoly
 from Gaussian_mixture_model.model import GaussianMixtureModel
 import sys
 import pandas as pd
-
+import scipy.stats
 
 
 def generate_samples(n, pi, mu, sigma):
@@ -17,6 +17,25 @@ def generate_samples(n, pi, mu, sigma):
     samples = np.random.normal(0, 1, n) * sigma[z] + mu[z]
 
     return samples
+
+def triangular_pdf(x, ll, md, rr):
+
+    indl = (x >= ll) & (x <= md)
+    indr = (x > md) & (x <= rr)
+
+    results = np.zeros([x.size])
+    results[indl] = (x[indl] - ll) * ((2 / (rr - ll)) / (md - ll))
+    results[indr] = (rr - x[indr]) * ((2 / (rr - ll)) / (rr - md))
+
+    return results
+
+def mixture_of_Gaussian_pdf(x, pi, mu, sigma):
+    pdf = np.zeros(x.size)
+    ndist = scipy.stats.norm(0,1)
+    for i in range(pi.size):
+        pdf += pi[i] * ndist.pdf((x - mu[i]) / sigma[i]) / sigma[i]
+    return pdf
+
 
 if __name__ == '__main__':
 
@@ -95,13 +114,15 @@ if __name__ == '__main__':
 
     scaled_samples = scale_data(samples, min_x, max_x)
     print(np.min(scaled_samples), np.max(scaled_samples))
-    ticks = np.arange(min_x, max_x, 0.01)
+    ticks = np.arange(min_x, max_x, (max_x - min_x) / 1000)
 
     avgLL_true = np.mean(triangular_pdf(samples, ll, md, rr))
 
     # plt.plot([ll, ll, rr, rr], [0, 1 / (rr - ll), 1 / (rr - ll), 0], color='blue')
     plt.plot([ll, md, rr], [0, 2 / (rr - ll), 0], color='blue')
     # plt.hist(samples, bins=2000, density=True)
+    # y_ticks_true = mixture_of_Gaussian_pdf(ticks, pi, mu, sigma)
+    # plt.plot(ticks, y_ticks_true)
     # gmm_avgll = []
     for k, c in [(2,'red'), (3,'red'), (4,'red'), (5,'red'), (6,'red')]: #[(2,'orange'), (4,'red'), (6,'black')]:
         print('GMM - k:', k)
@@ -126,3 +147,34 @@ if __name__ == '__main__':
         plt.plot(ticks, y_ticks_logpoly, color=c)
 
     plt.show()
+
+    # print('true:')
+    # head = 0
+    # while head < ticks.size:
+    #     tail = head
+    #     head = min(tail+100, ticks.size)
+    #     for i in range(tail,  head):
+    #         print('(' + str(ticks[i]) + ', ' + str(float(y_ticks_true[i])) + ') ', end='')
+    #     print()
+    # print()
+    #
+    # print('logpoly:')
+    # head = 0
+    # while head < ticks.size:
+    #     tail = head
+    #     head = min(tail + 100, ticks.size)
+    #     for i in range(tail, head):
+    #         print('(' + str(ticks[i]) + ', ' + str(float(y_ticks_logpoly[i])) + ') ', end='')
+    #     print()
+    # print()
+    #
+    # print('gmm:')
+    # head = 0
+    # while head < ticks.size:
+    #     tail = head
+    #     head = min(tail + 100, ticks.size)
+    #     for i in range(tail, head):
+    #         print('(' + str(ticks[i]) + ', ' + str(float(y_ticks_gmm[i])) + ') ', end='')
+    #     print()
+    # print()
+

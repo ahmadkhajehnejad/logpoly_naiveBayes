@@ -12,14 +12,14 @@ from multiprocessing import Process, Queue
 
 def load_data(device, feature_num, cls):
     file_path = 'data/iot_botnet_attack_' + device + '_11classes.csv'
-    data = pd.read_csv(file_path, header=None).values
+    data = pd.read_csv(file_path, header=None).sample(frac=1).reset_index(drop=True).values
     y = data[:, -1]
     data_feature = data[:, feature_num]
     return data_feature[y == cls]
 
 
-def fit_thread_func(shared_space, SS, n):
-    k = SS.size - 1
+def fit_thread_func(shared_space, SS_train, n, scaled_samples_validation, scaled_samples_test):
+    k = SS_train.size - 1
     logpoly = Logpoly()
     print('logpoly - k:', k)
     logpoly.fit(SS_train[:k + 1], n)
@@ -34,8 +34,11 @@ if __name__ == '__main__':
 
     device = 'Danmini_Doorbell'
     samples = load_data(device, 0, 1)
-    samples = samples[:900]
-    n = samples.size
+    n_test = 500
+    n_val = 500
+    n_train = 3000
+    n = n_test + n_val + n_train
+    samples = samples[:n]
     print(n)
 
     print(np.min(samples), np.max(samples))
@@ -50,13 +53,16 @@ if __name__ == '__main__':
 
     MAX_k = 20
 
-    scaled_samples_train = scaled_samples[:n//3]
-    n_train = n//3
-    SS_train = mp_compute_SS(scaled_samples_train, MAX_k)
-    scaled_samples_validation = scaled_samples[n//3:(2*n)//3]
+    scaled_samples_validation = scaled_samples[:n_val]
     # SS_validation = mp_compute_SS(scaled_samples_validation, MAX_k)
-    scaled_samples_test = scaled_samples[(2*n)//3:]
+
+    scaled_samples_test = scaled_samples[n_val:n_val+n_test]
     # SS_test = mp_compute_SS(scaled_samples_test, MAX_k)
+
+    scaled_samples_train = scaled_samples[n_test+n_val:]
+    SS_train = mp_compute_SS(scaled_samples_train, MAX_k)
+
+
 
 
     avgLL_list_train = np.zeros([MAX_k])
@@ -70,7 +76,7 @@ if __name__ == '__main__':
 
     for k in range(1,MAX_k+1):
         processes.append(Process(target=fit_thread_func,
-                                 args=[shared_space, SS_train[:k+1], n_train], daemon=True))
+                                 args=[shared_space, SS_train[:k+1], n_train, scaled_samples_validation, scaled_samples_test], daemon=True))
 
     max_num_processes = 3
     head = np.min([max_num_processes, len(processes)])
@@ -96,9 +102,9 @@ if __name__ == '__main__':
         print('k:', k, '   avgLL_train: ', avgLL_train, '  avgLL_val: ', avgLL_validation, '  avgLL_test: ', avgLL_test)
         sys.stdout.flush()
 
-        processes[k].join()
-        processes[k].terminate()
-        processes[k] = None
+        processes[k - 1].join()
+        processes[k - 1].terminate()
+        processes[k - 1] = None
         num_terminated += 1
 
         if head < len(processes):

@@ -27,7 +27,7 @@ def select_KDE_model(data, list_of_bandwidths):
     index_train, index_validation = get_train_and_validation_index(ind)
     n_train = index_train.size
 
-    if list_of_bandwidths == "around_heuristic":
+    if isinstance(list_of_bandwidths, str) and list_of_bandwidths == "around_heuristic":
         b = 1. / np.sqrt(n_train)
         list_of_bandwidths = [b / 2, b, 2 * b]
 
@@ -39,4 +39,5 @@ def select_KDE_model(data, list_of_bandwidths):
         avg_log_likelihoods.append(np.mean(kde_models[i].logpdf(data[index_validation])))
 
     best_index = np.argmax(avg_log_likelihoods)
+    # print('best kernel width:', list_of_bandwidths[best_index])
     return KDE(data, bandwidth=list_of_bandwidths[best_index])

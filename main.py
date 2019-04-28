@@ -57,4 +57,3 @@ if __name__ == '__main__':
     print(np.mean(scores))
     print(np.std(scores))
 
-

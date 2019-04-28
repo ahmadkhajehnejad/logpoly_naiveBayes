@@ -9,7 +9,6 @@ class GaussianMixtureModel:
     def __init__(self, data, num_components):
         self.gmm = GMM(n_components=num_components, covariance_type='full', max_iter=config.gmm.max_iter, n_init=config.gmm.n_init, tol=config.gmm.tol, init_params=config.gmm.init_params)
         self.gmm.fit(np.array(data).reshape([-1,1]))
-        print('##################', self.gmm.converged_, self.gmm.n_iter_)
 
 
     def logpdf(self, x):
@@ -19,6 +18,9 @@ class GaussianMixtureModel:
 def select_GMM_model(data, list_of_num_components):
 
     n_total = data.shape[0]
+
+    if len(list_of_num_components) == 1:
+        return GaussianMixtureModel(data, num_components=list_of_num_components[0])
 
     if config.classifier.smart_validation:
         ind = np.argsort(data)

@@ -39,6 +39,7 @@ def k_fold_classify(data, labels, features_info):
     scores = cross_val_score(classifier, data, labels, scoring=scorer, cv=config.general.folds_count)
     return scores
 
+
 # def k_fold_avg_log_likelihood():
 #     data, features_info = read_data()
 #     np.random.shuffle(data)

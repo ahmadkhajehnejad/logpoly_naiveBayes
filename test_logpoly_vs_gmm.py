@@ -116,7 +116,7 @@ if __name__ == '__main__':
     print(np.min(scaled_samples), np.max(scaled_samples))
     ticks = np.arange(min_x, max_x, (max_x - min_x) / 1000)
 
-    avgLL_true = np.mean(triangular_pdf(samples, ll, md, rr))
+    avgLL_true = np.mean(np.log(triangular_pdf(samples, ll, md, rr)))
 
     # plt.plot([ll, ll, rr, rr], [0, 1 / (rr - ll), 1 / (rr - ll), 0], color='blue')
     plt.plot([ll, md, rr], [0, 2 / (rr - ll), 0], color='blue')
@@ -124,24 +124,32 @@ if __name__ == '__main__':
     # y_ticks_true = mixture_of_Gaussian_pdf(ticks, pi, mu, sigma)
     # plt.plot(ticks, y_ticks_true)
     # gmm_avgll = []
-    for k, c in [(2,'red'), (3,'red'), (4,'red'), (5,'red'), (6,'red')]: #[(2,'orange'), (4,'red'), (6,'black')]:
+    for k, c in  [(2,'red'), (3,'red'), (4,'red'), (5,'red'), (6,'red')]: #[(2,'orange'), (4,'red'), (6,'black')]:
         print('GMM - k:', k)
         gmm = GaussianMixtureModel(scaled_samples, num_components=k)
-        print('gmm KL: ', avgLL_true - np.mean(gmm.logpdf(scaled_samples)))
+        gmm_avgLL = np.mean(np.log(np.exp(gmm.logpdf(scaled_samples)) / ((max_x - min_x) / (1-(config.logpoly.right_margin + config.logpoly.left_margin)))))
+        print('gmm KL: ', avgLL_true - gmm_avgLL)
+        # gmm = GaussianMixtureModel(samples, num_components=k)
+        # print('gmm KL: ', avgLL_true - np.mean(gmm.logpdf(samples)))
+
         # gmm_avgll.append(np.sum(gmm.logpdf(scaled_samples)))
         sys.stdout.flush()
 
-        y_ticks_gmm = np.exp(gmm.logpdf(scale_data(ticks, min_x, max_x))) / ((max_x - min_x) / (1-(config.logpoly.right_margin + config.logpoly.left_margin)))
+        #y_ticks_gmm = np.exp(gmm.logpdf(scale_data(ticks, min_x, max_x))) / ((max_x - min_x) / (1-(config.logpoly.right_margin + config.logpoly.left_margin)))
+        y_ticks_gmm = np.exp(gmm.logpdf(ticks))
 
         plt.plot(ticks, y_ticks_gmm, color=c)
 
     # print('GMM mean-avgll:', np.mean(gmm_avgll))
 
-    for k, c in [(5,'green'), (8,'green'), (11,'green'), (14,'green'), (17,'green')]:
+
+
+    for k, c in  [(5,'green'), (8,'green'), (11,'green'), (14,'green'), (17,'green')]:
         logpoly = Logpoly()
         print('logpoly - k:', k)
         logpoly.fit(mp_compute_SS(scaled_samples, k), n)
-        print('logpoly KL: ', avgLL_true - (logpoly.current_log_likelihood)/n)
+        logpoly_avgLL = np.mean(np.log(np.exp(logpoly.logpdf(scaled_samples)) / ((max_x - min_x) / (1-(config.logpoly.right_margin + config.logpoly.left_margin)))))
+        print('logpoly KL: ', avgLL_true - logpoly_avgLL)
         sys.stdout.flush()
         y_ticks_logpoly = np.exp(logpoly.logpdf(scale_data(ticks, min_x, max_x))) / ((max_x - min_x) / (1-(config.logpoly.right_margin + config.logpoly.left_margin)))
         plt.plot(ticks, y_ticks_logpoly, color=c)
@@ -157,24 +165,24 @@ if __name__ == '__main__':
     #         print('(' + str(ticks[i]) + ', ' + str(float(y_ticks_true[i])) + ') ', end='')
     #     print()
     # print()
-    #
-    # print('logpoly:')
-    # head = 0
-    # while head < ticks.size:
-    #     tail = head
-    #     head = min(tail + 100, ticks.size)
-    #     for i in range(tail, head):
-    #         print('(' + str(ticks[i]) + ', ' + str(float(y_ticks_logpoly[i])) + ') ', end='')
-    #     print()
-    # print()
-    #
-    # print('gmm:')
-    # head = 0
-    # while head < ticks.size:
-    #     tail = head
-    #     head = min(tail + 100, ticks.size)
-    #     for i in range(tail, head):
-    #         print('(' + str(ticks[i]) + ', ' + str(float(y_ticks_gmm[i])) + ') ', end='')
-    #     print()
-    # print()
+
+    print('logpoly:')
+    head = 0
+    while head < ticks.size:
+        tail = head
+        head = min(tail + 100, ticks.size)
+        for i in range(tail, head):
+            print('(' + str(ticks[i]) + ', ' + str(float(y_ticks_logpoly[i])) + ') ', end='')
+        print()
+    print()
+
+    print('gmm:')
+    head = 0
+    while head < ticks.size:
+        tail = head
+        head = min(tail + 100, ticks.size)
+        for i in range(tail, head):
+            print('(' + str(ticks[i]) + ', ' + str(float(y_ticks_gmm[i])) + ') ', end='')
+        print()
+    print()
 

@@ -43,7 +43,7 @@ if __name__ == '__main__':
 
     with open('pulse_data.pyData', 'rb') as datafile:
         samples = pickle.load(datafile)
-    n = 750
+    n = 500
     test_samples = samples[1000:]
     samples = samples[:n]
     print('############', samples[-1])
@@ -66,7 +66,7 @@ if __name__ == '__main__':
     plt.plot([min_x, min_D, min_D, ll, ll, rr, rr, max_D, max_D, max_x], [0, 0, p1, p1, p2, p2, p1, p1, 0, 0], color='blue')
 
     print('vkde:')
-    validation_threshold = n // config.classifier.validation_portion
+    validation_threshold = n // 3
     best_kernel_width = None
     best_kde_avgLL = -np.Inf
     for kernel_width in np.arange(0.001, 0.1, 0.001):
@@ -90,15 +90,35 @@ if __name__ == '__main__':
 
     plt.plot(ticks, y_ticks_kde, color='red')
 
-    for k, c in [(20 , 'green')]: #[(5,'green'), (8,'green'), (11,'green'), (14,'green'), (17,'green')]:
+
+    best_k= None
+    best_logpoly_avgLL = -np.Inf
+    for k in [5,10,15,20]:
         logpoly = Logpoly()
         print('logpoly - k:', k)
-        logpoly.fit(mp_compute_SS(scaled_samples, k), n)
-        # print('logpoly KL: ', avgLL_true - (logpoly.current_log_likelihood)/n)
-        print('logpoly KL: ', avgLL_true - np.mean(logpoly.logpdf(test_scaled_samples)))
-        sys.stdout.flush()
-        y_ticks_logpoly = np.exp(logpoly.logpdf(scale_data(ticks, min_x, max_x))) / ((max_x - min_x) / (1-(config.logpoly.right_margin + config.logpoly.left_margin)))
-        plt.plot(ticks, y_ticks_logpoly, color=c)
+        logpoly.fit(mp_compute_SS(scaled_samples[validation_threshold:], k), n-validation_threshold)
+        tmp_avgLL = np.mean(logpoly.logpdf(scaled_samples[:validation_threshold]))
+        if best_logpoly_avgLL < tmp_avgLL:
+            best_logpoly_avgLL = tmp_avgLL
+            best_k = k
+    logpoly = Logpoly()
+    print('logpoly - k:', best_k)
+    logpoly.fit(mp_compute_SS(scaled_samples, best_k), n)
+    print('logpoly KL: ', avgLL_true - np.mean(logpoly.logpdf(test_scaled_samples)))
+    sys.stdout.flush()
+    y_ticks_logpoly = np.exp(logpoly.logpdf(scale_data(ticks, min_x, max_x))) / (
+                (max_x - min_x) / (1 - (config.logpoly.right_margin + config.logpoly.left_margin)))
+    plt.plot(ticks, y_ticks_logpoly, color='green')
+
+    # for k, c in [(20 , 'green')]: #[(5,'green'), (8,'green'), (11,'green'), (14,'green'), (17,'green')]:
+    #     logpoly = Logpoly()
+    #     print('logpoly - k:', k)
+    #     logpoly.fit(mp_compute_SS(scaled_samples, k), n)
+    #     # print('logpoly KL: ', avgLL_true - (logpoly.current_log_likelihood)/n)
+    #     print('logpoly KL: ', avgLL_true - np.mean(logpoly.logpdf(test_scaled_samples)))
+    #     sys.stdout.flush()
+    #     y_ticks_logpoly = np.exp(logpoly.logpdf(scale_data(ticks, min_x, max_x))) / ((max_x - min_x) / (1-(config.logpoly.right_margin + config.logpoly.left_margin)))
+    #     plt.plot(ticks, y_ticks_logpoly, color=c)
 
     plt.show()
 

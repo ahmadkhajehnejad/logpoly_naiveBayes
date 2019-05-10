@@ -10,6 +10,7 @@ attacks_paths = ['gafgyt_attacks/combo.csv', 'gafgyt_attacks/junk.csv', 'gafgyt_
                  'mirai_attacks/udpplain.csv']
 benign_path = 'benign_traffic.csv'
 data = pd.read_csv(data_root_path + benign_path)
+print('benign:', len(data))
 data['label'] = 0
 
 for i, p in enumerate(attacks_paths):

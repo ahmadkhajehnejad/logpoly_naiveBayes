@@ -9,38 +9,38 @@ import sys
 import pandas as pd
 import scipy.stats
 import pickle
+from scipy.special import gamma as gamma_function
+from scipy.stats import gamma as gamma_distribution
 
 
-def true_pdf(x, _lambda, min_x, max_x):
-    cdf_coef_pos = 1. / (1 - np.exp(- _lambda * max_x))
-    cdf_coef_neg = 1. / (1 - np.exp(- _lambda * -min_x))
-    cdf_coef = np.ones([x.size]) * cdf_coef_pos
-    cdf_coef[x < 0] = cdf_coef_neg
-    pdf = _lambda * np.exp(- _lambda * np.abs(x))
-    return 0.5 * pdf * cdf_coef
+def true_pdf(x, _k, _theta, min_x, max_x):
+    cdf_coef = 1.
+    beta = 1. / _theta
+    return gamma_distribution.pdf(beta * x, a=_k) * beta
+    # return (x ** (_k-1) * np.exp(-x/_theta) / (gamma_function(_k) * _theta ** _k)) * cdf_coef
 
 if __name__ == '__main__':
 
-    MAX_N = 10000
-    _lambda = 0.5
-    N1 = MAX_N // 2
-    min_x = -30
-    max_x = 30
 
-    # samples_1 = np.random.exponential(1. / _lambda, N1)
-    # samples_2 = -np.random.exponential(1. / _lambda, MAX_N - N1)
-    # samples = np.concatenate([samples_1, samples_2])
+
+    MAX_N = 10000
+    _k = 2.
+    _theta = 0.5
+    min_x = 0
+    max_x = 10
+
+    # samples = np.random.gamma(_k, _theta, MAX_N)
     # np.random.shuffle(samples)
     # if np.max(samples) > max_x or np.min(samples) < min_x:
     #     raise Exception('sample generated out of range')
-    # with open('twoSideExp_data.pyData', 'wb') as datafile:
+    # with open('gamma_data.pyData', 'wb') as datafile:
     #     pickle.dump(samples, datafile)
 
-    with open('twoSideExp_data.pyData', 'rb') as datafile:
+    with open('gamma_data.pyData', 'rb') as datafile:
         samples = pickle.load(datafile)
-    n = 1000
+    n = 4000
     test_samples = samples[5000:]
-    val_samples = samples[2000:2000+100]
+    val_samples = samples[4900:4900+100]
     samples = samples[:n]
     print('############', samples[-1])
 
@@ -56,11 +56,12 @@ if __name__ == '__main__':
     print(np.min(scaled_samples), np.max(scaled_samples))
     ticks = np.arange(min_x, max_x, (max_x - min_x) / 1000)
 
-    avgLL_true = np.mean(np.log(true_pdf(test_samples, _lambda, min_x, max_x)))
-    y_ticks_true = true_pdf(ticks,  _lambda, min_x, max_x)
+    avgLL_true = np.mean(np.log(true_pdf(test_samples, _k, _theta, min_x, max_x)))
+    y_ticks_true = true_pdf(ticks,  _k, _theta, min_x, max_x)
     # plt.hist(samples, bins=100, density=True)
     plt.plot(ticks, y_ticks_true, color='blue')
 
+    # plt.show()
 
     print('vkde:')
     # validation_threshold = n // 3
@@ -92,17 +93,17 @@ if __name__ == '__main__':
     plt.plot(ticks, y_ticks_kde, color='red')
 
 
-    # best_k= None
-    # best_logpoly_avgLL = -np.Inf
-    # for k in [5, 10, 15, 20]: #"[5,10,15,20]:
-    #     logpoly = Logpoly()
-    #     print('logpoly - k:', k)
-    #     logpoly.fit(mp_compute_SS(scaled_samples, k), n)
-    #     tmp_avgLL = np.mean(logpoly.logpdf(val_scaled_samples))
-    #     if best_logpoly_avgLL < tmp_avgLL:
-    #         best_logpoly_avgLL = tmp_avgLL
-    #         best_k = k
-    best_k = 20
+    best_k= None
+    best_logpoly_avgLL = -np.Inf
+    for k in [5,10,15,20]:
+        logpoly = Logpoly()
+        print('logpoly - k:', k)
+        logpoly.fit(mp_compute_SS(scaled_samples, k), n)
+        tmp_avgLL = np.mean(logpoly.logpdf(val_scaled_samples))
+        if best_logpoly_avgLL < tmp_avgLL:
+            best_logpoly_avgLL = tmp_avgLL
+            best_k = k
+    # best_k = 5
     logpoly = Logpoly()
     print('logpoly - k:', best_k)
     logpoly.fit(mp_compute_SS(scaled_samples, best_k), n)

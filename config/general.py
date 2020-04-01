@@ -4,4 +4,4 @@ CONTINUOUS_FEATURE = 'c'
 CATEGORICAL_FEATURE = 'd'
 max_num_processes = 2
 num_processes_per_garbage_collection = 1000000
-num_clients = 5
+num_clients =  5

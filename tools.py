@@ -13,8 +13,8 @@ def get_train_and_validation_index(ind):
         index_train = ind[np.where(index_tmp)[0]]
     else:
         np.random.shuffle(ind)
-        n_train = n_total // config.classifier.validation_portion
-        index_train = ind[:n_train]
-        index_validation = ind[n_train:]
+        n_validation = n_total // config.classifier.validation_portion
+        index_validation = ind[:n_validation]
+        index_train = ind[n_validation:]
 
     return [index_train, index_validation]

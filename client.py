@@ -36,3 +36,11 @@ class Client:
 
         return result
 
+    def get_data(self, dimension, class_):
+        self.communication_rounds += 1
+        result = self.data[self.labels == class_, dimension]
+        self.sent_bytes += sys.getsizeof(result)
+
+        print('        sending ', sys.getsizeof(result), ' bytes.')
+
+        return result

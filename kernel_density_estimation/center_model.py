@@ -18,6 +18,8 @@ class KDE:
 
 def select_KDE_model(clients, dimension, class_, list_of_bandwidths):
 
+    data = np.concatenate([c.get_data(dimension, class_) for c in clients])
+
     n_total = data.shape[0]
 
     if config.classifier.smart_validation:

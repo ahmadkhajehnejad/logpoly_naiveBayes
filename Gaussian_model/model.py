@@ -9,7 +9,7 @@ class GaussianModel:
         if np.unique(data).shape[0] > 1:
             self.std = np.std(data)
         else:
-            self.std = 1e-6
+            self.std = 1e-8
 
         if np.isnan(self.mu):
             print(data)

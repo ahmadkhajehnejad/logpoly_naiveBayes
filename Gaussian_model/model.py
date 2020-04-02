@@ -6,7 +6,10 @@ class GaussianModel:
 
     def __init__(self, data):
         self.mu = np.mean(data)
-        self.std = np.std(data)
+        if np.unique(data).shape[0] > 1:
+            self.std = np.std(data)
+        else:
+            self.std = 1e-6
 
         if np.isnan(self.mu):
             print(data)

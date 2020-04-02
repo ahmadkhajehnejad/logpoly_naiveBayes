@@ -4,6 +4,7 @@ from logpoly.model import LogpolyModelSelector
 from categorical.model import CategoricalDensityEstimator
 from kernel_density_estimation.model import KDE, select_KDE_model
 from Gaussian_mixture_model.model import select_GMM_model
+from Gaussian_model.model import GaussianModel
 import config.classifier
 import config.general
 import config.kde
@@ -29,6 +30,8 @@ def fit_thread_func(shared_space, data, feature_info, c_index, i):
             shared_space.put([c_index, i, select_KDE_model(scaled_data, config.kde.list_of_bandwidths)])
         elif config.classifier.continuous_density_estimator == 'gmm':
             shared_space.put([c_index, i, select_GMM_model(scaled_data, config.gmm.list_of_num_components)])
+        elif config.classifier.continuous_density_estimator == 'Gaussian':
+            shared_space.put([c_index, i, GaussianModel(scaled_data)])
 
     elif feature_info['feature_type'] == config.general.CATEGORICAL_FEATURE:
         shared_space.put([c_index, i, CategoricalDensityEstimator(data, feature_info['categories'])])

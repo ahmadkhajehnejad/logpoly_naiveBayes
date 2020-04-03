@@ -1,5 +1,5 @@
 
-from classifier.center_model import NaiveBayesClassifier
+from classifier.center_model import NaiveBayesClassifier, scorer
 import config
 import pandas as pd
 import numpy as np
@@ -65,6 +65,18 @@ if __name__ == '__main__':
 
     for i, c in enumerate(clients):
         print('client #' + str(i), '   sent bytes: ', c.sent_bytes, '       communication_rounds: ', c.communication_rounds)
+
+
+    score = scorer(NaiveBayesClassifier, data_test, labels_test)
+
+    print('sum of sent bytes: ', np.sum([c.sent_bytes for c in clients]))
+    print('sent bytes by each client: ', [c.sent_bytes for c in clients])
+    print('\nsum of received bytes: ', np.sum([c.received_bytes for c in clients]))
+    print('received bytes by each client: ', [c.received_bytes for c in clients])
+    print('\nsum of communication rounds: ', np.sum([c.communication_rounds for c in clients]))
+    print('communication rounds by each client: ', [c.communication_rounds for c in clients])
+
+    print('\ntest score:  ', score)
 
     #classifier.test()
 

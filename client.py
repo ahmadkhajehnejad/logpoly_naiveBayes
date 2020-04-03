@@ -12,6 +12,7 @@ class Client:
         for i in range(data.shape[1]):
             self.scaled_data[:,i] = logpoly.tools.scale_data(self.data[:,i], features_info[i]['min_value'], features_info[i]['max_value'])
         self.sent_bytes = 0
+        self.received_bytes = 0
         self.communication_rounds = 0
 
     def get_n(self):

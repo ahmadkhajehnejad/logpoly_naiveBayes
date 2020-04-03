@@ -6,7 +6,8 @@ from tools import get_train_and_validation_index
 
 class KDE:
 
-    def __init__(self, data, bandwidth = None):
+    def __init__(self, clients, dimension, class_, bandwidth = None):
+        data = np.concatenate([c.get_data(dimension, class_) for c in clients])
         if bandwidth is None:
             bandwidth = 1. / np.sqrt(data.size)
         self.kde = KernelDensity(kernel='gaussian', bandwidth=bandwidth).fit(np.array(data).reshape([-1, 1]))

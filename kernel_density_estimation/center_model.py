@@ -17,9 +17,14 @@ class KDE:
         return np.array(self.kde.score_samples(np.array(x).reshape([-1, 1])))
 
 
-def select_KDE_model(clients, dimension, class_, list_of_bandwidths):
+def select_KDE_model(dimension, class_, list_of_bandwidths):
+
+    data_from_clients = []
+
+    for i in range(config.general.num_clients):
 
     data = np.concatenate([c.get_data(dimension, class_) for c in clients])
+    data = np.concatenate(data_from_clients, axis=0)
 
     n_total = data.shape[0]
 

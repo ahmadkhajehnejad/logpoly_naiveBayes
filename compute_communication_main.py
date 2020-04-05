@@ -7,37 +7,22 @@ import sys
 from client import Client
 
 
-def get_clients_and_test_data(features_info):
+def load_test_data():
     data = pd.read_csv('data/' + config.general.dataset_name + '.csv', header = None).values
     labels = data[:, -1]
     data = data[:, :-1]
-    n = data.shape[0]
-
-    n_test = n // config.classifier.test_size
+    n_test = config.classifier.test_size
     data_test = data[:n_test, :]
     labels_test = labels[:n_test]
 
-    data = data[n_test:, :]
-    labels = labels[n_test:]
-    n = data.shape[0]
-
-    ind = np.random.permutation(n)
-    data = data[ind,:]
-    labels = labels[ind]
-
-    partition_points = np.round(np.linspace(0, n, config.general.num_clients+1)).astype(int)
-    clients = []
-    for i in range(config.general.num_clients):
-        selected_ind = ind[ partition_points[i]: partition_points[i+1]]
-        clients.append(Client(data[ selected_ind, :], labels[selected_ind], features_info))
-
-    return clients, data_test, labels_test
+    return data_test, labels_test
 
 
-def get_features_info():
+def load_features_info():
     data = pd.read_csv('data/' + config.general.dataset_name + '.csv', header=None).values
     labels = data[:, -1]
     data = data[:, :-1]
+
     feature_types = pd.read_csv('data/' + config.general.dataset_name + '_feature_types.csv',
                                 header=None).values.reshape([-1])
     feature_types = np.array([f.strip() for f in feature_types])
@@ -58,23 +43,12 @@ def get_features_info():
 
 
 if __name__ == '__main__':
-    features_info = get_features_info()
-    clients, data_test, labels_test = get_clients_and_test_data(features_info)
-    classifier = NaiveBayesClassifier(features_info, clients)
+    features_info = load_features_info()
+    data_test, labels_test = load_test_data(features_info)
+    classifier = NaiveBayesClassifier(features_info)
     classifier.fit()
 
-    for i, c in enumerate(clients):
-        print('client #' + str(i), '   sent bytes: ', c.sent_bytes, '       communication_rounds: ', c.communication_rounds)
-
-
-    score = scorer(NaiveBayesClassifier, data_test, labels_test)
-
-    print('sum of sent bytes: ', np.sum([c.sent_bytes for c in clients]))
-    print('sent bytes by each client: ', [c.sent_bytes for c in clients])
-    print('\nsum of received bytes: ', np.sum([c.received_bytes for c in clients]))
-    print('received bytes by each client: ', [c.received_bytes for c in clients])
-    print('\nsum of communication rounds: ', np.sum([c.communication_rounds for c in clients]))
-    print('communication rounds by each client: ', [c.communication_rounds for c in clients])
+    score = scorer(classifier, data_test, labels_test)
 
     print('\ntest score:  ', score)
 

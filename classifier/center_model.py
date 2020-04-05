@@ -11,10 +11,9 @@ import numpy as np
 from multiprocessing import Process, Queue
 import gc
 import sys
-from client import Client
 
 
-def fit_thread_func(shared_space, clients, c, feature_info, c_index, i):
+def fit_thread_func(shared_space, c, feature_info, c_index, i):
     print(c_index, i)
     sys.stdout.flush()
     # scaled_data = logpoly.tools.scale_data(data, feature_info['min_value'],
@@ -22,16 +21,16 @@ def fit_thread_func(shared_space, clients, c, feature_info, c_index, i):
     if feature_info['feature_type'] == config.general.CONTINUOUS_FEATURE:
         if config.classifier.continuous_density_estimator == 'logpoly':
             logpoly_model_selector = LogpolyModelSelector(config.logpoly.list_factor_degrees)
-            shared_space.put([c_index, i, logpoly_model_selector.select_model(clients, i, c)])
+            shared_space.put([c_index, i, logpoly_model_selector.select_model(i, c)])
         elif config.classifier.continuous_density_estimator == 'kde':
-            shared_space.put([c_index, i, KDE(clients, i, c, bandwidth=None)])
+            shared_space.put([c_index, i, KDE(i, c, bandwidth=None)])
         elif config.classifier.continuous_density_estimator == 'vkde':
-            shared_space.put([c_index, i, select_KDE_model(clients, i, c, config.kde.list_of_bandwidths)])
+            shared_space.put([c_index, i, select_KDE_model(i, c, config.kde.list_of_bandwidths)])
         elif config.classifier.continuous_density_estimator == 'gmm':
-            shared_space.put([c_index, i, select_GMM_model(clients, i, c, config.gmm.list_of_num_components)])
+            shared_space.put([c_index, i, select_GMM_model(i, c, config.gmm.list_of_num_components)])
 
     elif feature_info['feature_type'] == config.general.CATEGORICAL_FEATURE:
-        shared_space.put([c_index, i, CategoricalDensityEstimator(clients, i, c, feature_info['categories'])])
+        shared_space.put([c_index, i, CategoricalDensityEstimator(i, c, feature_info['categories'])])
     else:
         raise 'not handled case feature_type=' + str(feature_info['feature_type']) + \
               ' (dimension #' + str(i) + ')'
@@ -42,11 +41,10 @@ def fit_thread_func(shared_space, clients, c, feature_info, c_index, i):
 
 class NaiveBayesClassifier:
 
-    def __init__(self, features_info, clients):
+    def __init__(self, features_info):
         self.features_info = features_info
         self.density_estimators = None
         self.classes = self.features_info[-1]['classes']
-        self.clients = clients
 
     def fit(self):
         self.density_estimators = [[None for _ in range(len(self.features_info) - 1)] for _ in self.classes]
@@ -60,7 +58,7 @@ class NaiveBayesClassifier:
                 # class_data = data[class_index, :]
                 for i in range(len(self.features_info) - 1):
                     processes.append(Process(target=fit_thread_func,
-                                             args=[shared_space, self.clients, c, self.features_info[i],
+                                             args=[shared_space, c, self.features_info[i],
                                                    c_index, i], daemon=True))
 
             head = np.min([config.general.max_num_processes, len(processes)])
@@ -97,19 +95,19 @@ class NaiveBayesClassifier:
 
                         if config.classifier.continuous_density_estimator == 'logpoly':
                             logpoly_model_selector = LogpolyModelSelector(config.logpoly.list_factor_degrees)
-                            self.density_estimators[c_index][i] = logpoly_model_selector.select_model(self.clients, i,
+                            self.density_estimators[c_index][i] = logpoly_model_selector.select_model(i,
                                                                                                       c)
                         elif config.classifier.continuous_density_estimator == 'kde':
-                            self.density_estimators[c_index][i] = KDE(self.clients, i, c, bandwidth=None)
+                            self.density_estimators[c_index][i] = KDE(i, c, bandwidth=None)
                         elif config.classifier.continuous_density_estimator == 'vkde':
-                            self.density_estimators[c_index][i] = select_KDE_model(self.clients, i, c,
+                            self.density_estimators[c_index][i] = select_KDE_model(i, c,
                                                                                    config.kde.list_of_bandwidths)
                         elif config.classifier.continuous_density_estimator == 'gmm':
-                            self.density_estimators[c_index][i] = select_GMM_model(self.clients, i, c,
+                            self.density_estimators[c_index][i] = select_GMM_model(i, c,
                                                                                    config.gmm.list_of_num_components)
 
                     elif self.features_info[i]['feature_type'] == config.general.CATEGORICAL_FEATURE:
-                        self.density_estimators[c_index][i] = CategoricalDensityEstimator(self.clients, i, c,
+                        self.density_estimators[c_index][i] = CategoricalDensityEstimator(i, c,
                                                                                           self.features_info[i][
                                                                                               'categories'])
                     else:

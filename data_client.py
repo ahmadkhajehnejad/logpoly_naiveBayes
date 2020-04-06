@@ -32,7 +32,7 @@ def load_data():
     return [data, labels, features_info]
 
 
-class Client:
+class DataClient:
 
     def __init__(self, client_number):
         data, labels, features_info = load_data()
@@ -75,7 +75,7 @@ if __name__ == '__main__':
 
     mpmath.mp.dps = config.logpoly.mp_dps
 
-    client = Client(client_number)
+    data_client = DataClient(client_number)
 
     address = ('localhost', 3344 + client_number)  # family is deduced to be 'AF_INET'
     listener = Listener(address)  # , authkey='secret password')
@@ -91,11 +91,11 @@ if __name__ == '__main__':
 
         reply_port = msg[0]
         if msg[1] == 'get_n':
-            result = client.get_n()
+            result = data_client.get_n()
         elif msg[1] == 'get_logpoly_SS':
-            result = client.get_logpoly_SS(msg[2], msg[3], msg[4], msg[5], msg[6])
+            result = data_client.get_logpoly_SS(msg[2], msg[3], msg[4], msg[5], msg[6])
         elif msg[1] == 'get_data':
-            result = client.get_data(msg[2],msg[3])
+            result = data_client.get_data(msg[2], msg[3])
 
         address = ('localhost', reply_port)
         conn = Client(address)  # , authkey='secret password')

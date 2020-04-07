@@ -4,7 +4,9 @@ import numpy as np
 import sys
 import pandas as pd
 import argparse
-import config
+import config.general
+import config.logpoly
+import config.classifier
 import mpmath
 from multiprocessing.connection import Listener
 from multiprocessing.connection import Client
@@ -12,10 +14,11 @@ from multiprocessing.connection import Client
 def load_data():
     data = pd.read_csv('data/' + config.general.dataset_name + '.csv', header = None).values
     labels = data[:, -1]
-    data = data[:, :-1]
+    data = data[:, :config.general.max_dimension]  # :-1] ##################
     feature_types = pd.read_csv('data/' + config.general.dataset_name + '_feature_types.csv',
                                 header=None).values.reshape([-1])
     feature_types = np.array([f.strip() for f in feature_types])
+    feature_types = feature_types[:config.general.max_dimension]  ######################
     features_info = []
     for i in range(len(feature_types)):
         sys.stdout.flush()
@@ -34,23 +37,10 @@ def load_data():
 
 class DataClient:
 
-    def __init__(self, client_number):
-        data, labels, features_info = load_data()
+    def __init__(self, data, labels):
 
-        n_total = data.shape[0] - config.classifier.test_size
-
-        n = n_total // config.general.num_clients
-
-        start_ind = config.classifier.test_size + n * client_number
-        end_ind = start_ind + n
-
-        self.data = data[start_ind:end_ind,:]
-        self.label = labels[start_ind:end_ind]
-
-        self.scaled_data = np.zeros(self.data.shape)
-        for i in range(data.shape[1]):
-            self.scaled_data[:,i] = logpoly.tools.scale_data(self.data[:,i], features_info[i]['min_value'], features_info[i]['max_value'])
-
+        self.data = data
+        self.labels = labels
 
     def get_n(self):
         return self.scaled_data.shape[0]
@@ -65,24 +55,19 @@ class DataClient:
         return self.data[self.labels == class_, dimension]
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-cn', '--client_number', help='The client\'s number.', action='store',
-                        type=int)
-    args = parser.parse_args()
-
-    client_number = args.client_number
+def run_data_client(client_number, data, labels):
 
     mpmath.mp.dps = config.logpoly.mp_dps
 
-    data_client = DataClient(client_number)
-
-    address = ('localhost', 3344 + client_number)  # family is deduced to be 'AF_INET'
+    data_client = DataClient(data, labels)
+    my_port = config.general.first_client_port + client_number
+    address = ('localhost', my_port)  # family is deduced to be 'AF_INET'
     listener = Listener(address)  # , authkey='secret password')
 
     while True:
 
         conn = listener.accept()
+        print('## from_port_to_port: ' + str(listener.last_accepted) + ' -> ' + str(my_port))
         msg = conn.recv()
         conn.close()
 
@@ -103,3 +88,4 @@ if __name__ == '__main__':
         conn.close()
 
     listener.close()
+    print('client ' + str(client_number) + ' closed')

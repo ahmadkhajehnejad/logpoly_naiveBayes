@@ -1,6 +1,7 @@
 from .tools import mp_compute_poly, mp_log_integral_exp, mp_compute_SS, mp_integral, mp_moments
 import config.logpoly
 import config.general
+import config.classifier
 import numpy as np
 from tools import get_train_and_validation_index
 from mpmath import mp, mpf
@@ -10,6 +11,9 @@ import scipy.integrate as integrate
 # import os
 # import matplotlib.pyplot as plt
 import sys
+from multiprocessing.connection import Listener
+from multiprocessing.connection import Client
+
 
 class Logpoly:
 
@@ -156,13 +160,65 @@ class LogpolyModelSelector:
     def __init__(self, list_factor_degrees):
         self.list_factor_degrees = list_factor_degrees
 
-    def select_model(self, clients, dimension, class_):
+    def select_model(self, dimension, class_):
 
-        # n_total = np.sum([c.get_n() for c in clients])
+        found = False
+        while not found:
+            found = True
+            try:
+                my_port = np.random.randint(20000, 30000)
+                address = ('localhost', my_port)  # family is deduced to be 'AF_INET'
+                listener = Listener(address)  # , authkey='secret password')
+            except:
+                found = False
+
+        def _get_client_n(i):
+            address = ('localhost', config.general.first_client_port + i)  # family is deduced to be 'AF_INET'
+            connected = False
+            while not connected:
+                try:
+                    connected = True
+                    conn = Client(address)  # , authkey='secret password')
+                except:
+                    connected = False
+            conn.send([my_port, 'get_n'])
+            conn.close()
+
+            conn = listener.accept()
+
+            print('## from_port_to_port: ' + str(listener.last_accepted) + ' -> ' + str(my_port))
+
+            msg = conn.recv()
+            conn.close()
+            return msg
+
+        n_clients = [_get_client_n(i) for i in range(config.general.num_clients)]
+        n_total = np.sum(n_clients)
+
+        def _get_client_SS(i, k, from_, to_):
+            address = ('localhost', config.general.first_client_port + i)  # family is deduced to be 'AF_INET'
+            connected = False
+            while not connected:
+                try:
+                    connected = True
+                    conn = Client(address)  # , authkey='secret password')
+                except:
+                    connected = False
+            conn.send([my_port, 'get_logpoly_SS', dimension, class_, k, from_, to_])
+            conn.close()
+            conn = listener.accept()
+            print('## from_port_to_port: ' + str(listener.last_accepted) + ' -> ' + str(my_port))
+            msg = conn.recv()
+            conn.close()
+            return msg
 
         if len(self.list_factor_degrees) == 1:
-            n_total = np.sum([c.get_n() for c in clients])
-            SS = np.sum([c.get_logpoly_SS(dimension, class_, self.list_factor_degrees[0]) for c in clients], from_ = 0, to_ = n_total)
+            for i in range(config.general.num_clients):
+                SS_client = _get_client_SS(i, self.list_factor_degrees[0], from_=0, to_=n_total)
+                if i == 0:
+                    SS = SS_client
+                else:
+                    SS += SS_client
             logpoly_model = Logpoly()
             logpoly_model.fit(SS, n_total)
             return logpoly_model
@@ -174,12 +230,12 @@ class LogpolyModelSelector:
         # index_train, index_validation = get_train_and_validation_index(ind)
         # n_train = index_train.size
 
-        for i, c in enumerate(clients):
-            n = c.get_n()
+        for i in range(config.general.num_clients):
+            n = n_clients[i]
             n_1 = n // config.classifier.validation_portion
             n_2 = n - n_1
-            SS_1 = c.get_logpoly_SS(dimension, class_, np.max(self.list_factor_degrees), from_=0, to_=n_1)
-            SS_2 = c.get_logpoly_SS(dimension, class_, np.max(self.list_factor_degrees), from_=n_1, to_=n)
+            SS_1 = _get_client_SS(i, np.max(self.list_factor_degrees), from_=0, to_=n_1)
+            SS_2 = _get_client_SS(i, np.max(self.list_factor_degrees), from_=n_1, to_=n)
             if i == 0:
                 n_validation = n_1
                 SS_validation = SS_1
@@ -187,9 +243,11 @@ class LogpolyModelSelector:
                 SS_train = SS_2
             else:
                 n_validation += n_1
-                SS_validation += n_1
+                SS_validation += SS_1
                 n_train += n_2
                 SS_train += SS_2
+
+        listener.close()
 
         avg_log_likelihoods = []
         logpoly_models = []

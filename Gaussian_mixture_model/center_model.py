@@ -15,7 +15,7 @@ class GaussianMixtureModel:
         return np.array(self.gmm.score_samples(np.array(x).reshape([-1, 1])))
 
 
-def select_GMM_model(clients, dimension, class_, list_of_num_components):
+def select_GMM_model( dimension, class_, list_of_num_components):
 
     n_total = data.shape[0]
 

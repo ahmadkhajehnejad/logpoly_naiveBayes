@@ -1,9 +1,8 @@
 from .tools import mp_compute_poly, mp_log_integral_exp, mp_compute_SS, mp_integral, mp_moments
 import config.logpoly
-import config.general
 import config.classifier
+import config.communication
 import numpy as np
-from tools import get_train_and_validation_index
 from mpmath import mp, mpf
 import mpmath
 import warnings
@@ -11,8 +10,8 @@ import scipy.integrate as integrate
 # import os
 # import matplotlib.pyplot as plt
 import sys
-from multiprocessing.connection import Listener
-from multiprocessing.connection import Client
+from config.client_nodes_address import client_nodes_address
+from communication_tools import get_listener, receive_msg, send_msg
 
 
 class Logpoly:
@@ -162,58 +161,23 @@ class LogpolyModelSelector:
 
     def select_model(self, dimension, class_):
 
-        found = False
-        while not found:
-            found = True
-            try:
-                my_port = np.random.randint(20000, 30000)
-                address = ('localhost', my_port)  # family is deduced to be 'AF_INET'
-                listener = Listener(address)  # , authkey='secret password')
-            except:
-                found = False
+        listener = get_listener()
 
-        def _get_client_n(i):
-            address = ('localhost', config.general.first_client_port + i)  # family is deduced to be 'AF_INET'
-            connected = False
-            while not connected:
-                try:
-                    connected = True
-                    conn = Client(address)  # , authkey='secret password')
-                except:
-                    connected = False
-            conn.send([my_port, 'get_n'])
-            conn.close()
-
-            conn = listener.accept()
-
-            print('## from_port_to_port: ' + str(listener.last_accepted) + ' -> ' + str(my_port))
-
-            msg = conn.recv()
-            conn.close()
+        def _get_client_n(client_number):
+            send_msg(client_nodes_address, [listener.address, client_number, dimension, class_, 'get_n'])
+            msg = receive_msg(listener)
             return msg
 
-        n_clients = [_get_client_n(i) for i in range(config.general.num_clients)]
+        n_clients = [_get_client_n(i) for i in range(config.communication.num_clients)]
         n_total = np.sum(n_clients)
 
-        def _get_client_SS(i, k, from_, to_):
-            address = ('localhost', config.general.first_client_port + i)  # family is deduced to be 'AF_INET'
-            connected = False
-            while not connected:
-                try:
-                    connected = True
-                    conn = Client(address)  # , authkey='secret password')
-                except:
-                    connected = False
-            conn.send([my_port, 'get_logpoly_SS', dimension, class_, k, from_, to_])
-            conn.close()
-            conn = listener.accept()
-            print('## from_port_to_port: ' + str(listener.last_accepted) + ' -> ' + str(my_port))
-            msg = conn.recv()
-            conn.close()
+        def _get_client_SS(client_number, k, from_, to_):
+            send_msg(client_nodes_address, [listener.address, client_number, dimension, class_, 'get_logpoly_SS', k, from_, to_])
+            msg = receive_msg(listener)
             return msg
 
         if len(self.list_factor_degrees) == 1:
-            for i in range(config.general.num_clients):
+            for i in range(config.communication.num_clients):
                 SS_client = _get_client_SS(i, self.list_factor_degrees[0], from_=0, to_=n_total)
                 if i == 0:
                     SS = SS_client
@@ -230,7 +194,7 @@ class LogpolyModelSelector:
         # index_train, index_validation = get_train_and_validation_index(ind)
         # n_train = index_train.size
 
-        for i in range(config.general.num_clients):
+        for i in range(config.communication.num_clients):
             n = n_clients[i]
             n_1 = n // config.classifier.validation_portion
             n_2 = n - n_1
@@ -248,6 +212,7 @@ class LogpolyModelSelector:
                 SS_train += SS_2
 
         listener.close()
+        return Logpoly() ##########
 
         avg_log_likelihoods = []
         logpoly_models = []

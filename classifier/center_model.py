@@ -13,27 +13,25 @@ import gc
 import sys
 
 
-def fit_thread_func(shared_space, c, feature_info, c_index, i):
-    print(c_index, i)
+def fit_thread_func(shared_space, c, dimension, feature_info, c_index):
+    print(c_index, dimension)
     sys.stdout.flush()
-    # scaled_data = logpoly.tools.scale_data(data, feature_info['min_value'],
-    #                                        feature_info['max_value'])
     if feature_info['feature_type'] == config.general.CONTINUOUS_FEATURE:
         if config.classifier.continuous_density_estimator == 'logpoly':
             logpoly_model_selector = LogpolyModelSelector(config.logpoly.list_factor_degrees)
-            shared_space.put([c_index, i, logpoly_model_selector.select_model(i, c)])
+            shared_space.put([c_index, dimension, logpoly_model_selector.select_model(dimension, c)])
         elif config.classifier.continuous_density_estimator == 'kde':
-            shared_space.put([c_index, i, KDE(i, c, bandwidth=None)])
+            shared_space.put([c_index, dimension, KDE(dimension, c, bandwidth=None)])
         elif config.classifier.continuous_density_estimator == 'vkde':
-            shared_space.put([c_index, i, select_KDE_model(i, c, config.kde.list_of_bandwidths)])
+            shared_space.put([c_index, dimension, select_KDE_model(dimension, c, config.kde.list_of_bandwidths)])
         elif config.classifier.continuous_density_estimator == 'gmm':
-            shared_space.put([c_index, i, select_GMM_model(i, c, config.gmm.list_of_num_components)])
+            shared_space.put([c_index, dimension, select_GMM_model(dimension, c, config.gmm.list_of_num_components)])
 
     elif feature_info['feature_type'] == config.general.CATEGORICAL_FEATURE:
-        shared_space.put([c_index, i, CategoricalDensityEstimator(i, c, feature_info['categories'])])
+        shared_space.put([c_index, dimension, CategoricalDensityEstimator(dimension, c, feature_info['categories'])])
     else:
         raise 'not handled case feature_type=' + str(feature_info['feature_type']) + \
-              ' (dimension #' + str(i) + ')'
+              ' (dimension #' + str(dimension) + ')'
 
     print('thread finished')
     sys.stdout.flush()
@@ -58,8 +56,8 @@ class NaiveBayesClassifier:
                 # class_data = data[class_index, :]
                 for i in range(len(self.features_info) - 1):
                     processes.append(Process(target=fit_thread_func,
-                                             args=[shared_space, c, self.features_info[i],
-                                                   c_index, i], daemon=True))
+                                             args=[shared_space, c, i, self.features_info[i],
+                                                   c_index], daemon=True))
 
             head = np.min([config.general.max_num_processes, len(processes)])
             for i in range(head):

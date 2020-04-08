@@ -1,43 +1,20 @@
 from sklearn.neighbors.kde import KernelDensity
 import numpy as np
 import config.classifier
+import config.communication
 from tools import get_train_and_validation_index
-from multiprocessing.connection import Listener
-from multiprocessing.connection import Client
+from config.client_nodes_address import client_nodes_address
+from communication_tools import get_listener, receive_msg, send_msg
 
 
 def _get_data_from_clients(dimension, class_):
-    found = False
-    while not found:
-        found = True
-        try:
-            my_port = np.random.randint(20000, 30000)
-            address = ('localhost', my_port)  # family is deduced to be 'AF_INET'
-            listener = Listener(address)  # , authkey='secret password')
-        except:
-            found = False
+    listener = get_listener()
 
     data_from_clients = []
-
-    for i in range(config.general.num_clients):
-        address = ('localhost', config.general.first_client_port + i)  # family is deduced to be 'AF_INET'
-        connected = False
-        while not connected:
-            try:
-                connected = True
-                conn = Client(address)  # , authkey='secret password')
-            except:
-                connected = False
-        conn.send([my_port, 'get_data', dimension, class_])
-        conn.close()
-
-        conn = listener.accept()
-
-        print('## from_port_to_port: ' + str(listener.last_accepted) + ' -> ' + str(my_port))
-
-        msg = conn.recv()
+    for client_number in range(config.communication.num_clients):
+        send_msg(client_nodes_address, [listener.address, client_number, dimension, class_, 'get_data'])
+        msg = receive_msg(listener)
         data_from_clients.append(msg)
-        conn.close()
 
     listener.close()
 
@@ -48,6 +25,7 @@ class KDE:
 
     def __init__(self, dimension, class_, bandwidth = None):
         data = _get_data_from_clients(dimension, class_)
+
         if bandwidth is None:
             bandwidth = 1. / np.sqrt(data.size)
         self.kde = KernelDensity(kernel='gaussian', bandwidth=bandwidth).fit(np.array(data).reshape([-1, 1]))

@@ -1,21 +1,26 @@
 import config.general
+from config.client_nodes_address import client_nodes_address
+
+ROOT_FOLDER = './results_communication/kde-n10000/'
 
 def load_valid_src_trg_pairts():
 
     valid_src_trg_pairs = set()
 
-    with open('comp_comm.out', 'r') as file:
-        lines = file.readlines()
+    for filename in ['clients.out', 'center.out']:
+        with open(ROOT_FOLDER + filename, 'r') as file:
+            lines = file.readlines()
 
-    for s in lines:
+        for s in lines:
 
-        if not s.startswith('## from_port_to_port:'):
-            continue
+            if not s.startswith('## from_port_to_port:'):
+                continue
 
-        parts = s.split()
-        src_port = int(parts[3][:-1])
-        trg_port = int(parts[5])
-        valid_src_trg_pairs.update([(src_port, trg_port)])
+            parts = s.split()
+
+            src_adress = parts[2] + '.' + parts[4]
+            trg_address = parts[6] + '.' + parts[8]
+            valid_src_trg_pairs.update([(src_adress, trg_address)])
 
     return valid_src_trg_pairs
 
@@ -27,8 +32,10 @@ if __name__ == '__main__':
 
     total_sent_bytes = 0
     total_received_bytes = 0
+    packet_count = 0
+    non_empty_packet_count = 0
 
-    with open('tcpdump.out','r') as file:
+    with open(ROOT_FOLDER + 'tcpdump.out','r') as file:
         lines = file.readlines()
 
     for s in lines:
@@ -40,24 +47,24 @@ if __name__ == '__main__':
         if parts[-2] != 'length':
             continue
 
-        src = parts[2]
-        if not src.startswith('127.0.0.1.'):
-            continue
-        src_port = int(src[10:])
+        src_address = parts[2]
 
-        trg = parts[4]
-        if not trg.startswith('127.0.0.1.'):
-            continue
-        trg_port = int(trg[10:-1])
+        trg_address = parts[4][:-1]
 
-        if (src_port, trg_port) not in valid_src_trg_pairs:
+        if (src_address, trg_address) not in valid_src_trg_pairs:
             continue
 
-        if config.general.first_client_port <= trg_port < config.general.first_client_port + config.general.num_clients:
+        if trg_address == client_nodes_address[0] + '.' + str(client_nodes_address[1]):
             total_sent_bytes +=  int(parts[-1])
         else:
             total_received_bytes += int(parts[-1])
 
-    print('total sent bytes: ', total_sent_bytes)
-    print('total rcvd bytes: ', total_received_bytes)
-    print('sum sent & recvd: ', total_sent_bytes + total_received_bytes)
+        packet_count += 1
+        if int(parts[-1]) > 0:
+            non_empty_packet_count += 1
+
+    print('     total sent bytes to clients: ', total_sent_bytes)
+    print('total receivd bytes from clients: ', total_received_bytes)
+    print('                             sum: ', total_sent_bytes + total_received_bytes)
+    print('          packet count: ', packet_count)
+    print('non-empty packet count: ', non_empty_packet_count)

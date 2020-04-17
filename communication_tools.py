@@ -38,7 +38,7 @@ def receive_msg(listener):
     conn.close()
     return msg
 
-def send_msg(address, msg):
+def send_msg(address, msg, msg_size):
     connected = False
     while not connected:
         try:
@@ -46,6 +46,7 @@ def send_msg(address, msg):
             conn = Client(address)  # , authkey='secret password')
         except:
             connected = False
+    print('@@ sending ' + str(msg_size) + ' variables.')
     conn.send(msg)
     conn.close()
 
@@ -54,6 +55,7 @@ def load_data():
     data = pd.read_csv('data/' + config.general.dataset_name + '.csv', header=None).values
     labels = data[:, -1]
     data = data[:, :-1]
+    print('data shape:', data.shape) 
 
     feature_types = pd.read_csv('data/' + config.general.dataset_name + '_feature_types.csv',
                                 header=None).values.reshape([-1])

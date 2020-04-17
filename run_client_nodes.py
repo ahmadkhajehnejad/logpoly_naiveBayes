@@ -52,18 +52,23 @@ def _get_gmm_avglogpdf(data, pi, mu, var):
 def thread_func(reply_address, data, msg):
     if msg[0] == 'get_n':
         result = data.shape[0]
+        res_size = 1
     elif msg[0] == 'get_logpoly_SS':
         k, from_, to_ = msg[1], msg[2], msg[3]
         result = mp_compute_SS(data[from_:to_], k)
+        res_size = result.size
     elif msg[0] == 'get_data':
         result = data
+        res_size = data.size
     elif msg[0] == 'get_gmm_statistics':
         pi, mu, var, from_, to_= msg[1], msg[2], msg[3], msg[4], msg[5]
         result = _get_gmm_statistics(data[from_:to_], pi, mu, var)
+        res_size = np.sum([s.size for s in result])
     elif msg[0] == 'get_gmm_avglogpdf':
         pi, mu, var, from_, to_ = msg[1], msg[2], msg[3], msg[4], msg[5]
         result = _get_gmm_avglogpdf(data[from_:to_], pi, mu, var)
-    send_msg(reply_address, result)
+        res_size = 1
+    send_msg(reply_address, result, res_size)
 
 
 if __name__ == '__main__':

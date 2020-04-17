@@ -12,7 +12,8 @@ def _get_data_from_clients(dimension, class_):
 
     data_from_clients = []
     for client_number in range(config.communication.num_clients):
-        send_msg(client_nodes_address, [listener.address, client_number, dimension, class_, 'get_data'])
+        sz = 3
+        send_msg(client_nodes_address, [listener.address, client_number, dimension, class_, 'get_data'], sz)
         msg = receive_msg(listener)
         data_from_clients.append(msg)
 

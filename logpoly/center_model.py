@@ -164,7 +164,8 @@ class LogpolyModelSelector:
         listener = get_listener()
 
         def _get_client_n(client_number):
-            send_msg(client_nodes_address, [listener.address, client_number, dimension, class_, 'get_n'])
+            msg_sz = 3
+            send_msg(client_nodes_address, [listener.address, client_number, dimension, class_, 'get_n'], msg_sz)
             msg = receive_msg(listener)
             return msg
 
@@ -172,7 +173,8 @@ class LogpolyModelSelector:
         n_total = np.sum(n_clients)
 
         def _get_client_SS(client_number, k, from_, to_):
-            send_msg(client_nodes_address, [listener.address, client_number, dimension, class_, 'get_logpoly_SS', k, from_, to_])
+            msg_sz = 3
+            send_msg(client_nodes_address, [listener.address, client_number, dimension, class_, 'get_logpoly_SS', k, from_, to_], msg_sz)
             msg = receive_msg(listener)
             return msg
 

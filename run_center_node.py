@@ -11,7 +11,7 @@ if __name__ == '__main__':
     classifier = NaiveBayesClassifier(features_info)
     classifier.fit()
 
-    send_msg(client_nodes_address, ['close'])
+    send_msg(client_nodes_address, ['close'], 0)
 
     # score = scorer(classifier, data_test, labels_test)
     # print('\ntest score:  ', score)

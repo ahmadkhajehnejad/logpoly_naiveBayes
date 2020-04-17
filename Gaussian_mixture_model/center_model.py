@@ -23,21 +23,25 @@ class DistributedGaussianMixtureModel:
             esum_x = np.zeros([num_components])
             esum_x2 = np.zeros([num_components])
             for client_number in range(config.communication.num_clients):
+                msg_sz = 8
                 send_msg(client_nodes_address, [listener.address, client_number, dimension, class_, 'get_gmm_statistics',
-                                                self.pi, self.mu, self.var, from_[client_number], to_[client_number]])
+                                                self.pi, self.mu, self.var, from_[client_number], to_[client_number]], msg_sz)
                 msg = receive_msg(listener)
                 sum_gamma += msg[0]
                 esum_x += msg[1]
                 esum_x2 += msg[2]
             self.mu = esum_x / sum_gamma
-            self.var = (esum_x2 + esum_x * self.mu * self.mu - 2 * esum_x * self.mu) / sum_gamma
+            self.var = (esum_x2 + sum_gamma * self.mu * self.mu - 2 * esum_x * self.mu) / sum_gamma
+            min_allowable_var = 0.000001
+            self.var[self.var < min_allowable_var] = min_allowable_var
             self.pi = sum_gamma / n
 
     def avglogpdf(self, listener, dimension, class_, from_, to_):
         result = 0
         for client_number in range(config.communication.num_clients):
+            msg_sz = 8
             send_msg(client_nodes_address, [listener.address, client_number, dimension, class_, 'get_gmm_avglogpdf',
-                                            self.pi, self.mu, self.var, from_[client_number], to_[client_number]])
+                                            self.pi, self.mu, self.var, from_[client_number], to_[client_number]], msg_sz)
             msg = receive_msg(listener)
             result += msg
         return result
@@ -51,7 +55,8 @@ def select_GMM_model( dimension, class_, list_of_num_components):
     listener = get_listener()
 
     def _get_client_n(client_number):
-        send_msg(client_nodes_address, [listener.address, client_number, dimension, class_, 'get_n'])
+        msg_sz = 3
+        send_msg(client_nodes_address, [listener.address, client_number, dimension, class_, 'get_n'], msg_sz)
         msg = receive_msg(listener)
         return msg
 

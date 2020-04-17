@@ -3,7 +3,7 @@
 echo starting run_client_nodes
 python run_client_nodes.py > clients.out &
 
-sleep 5
+sleep 10
 
 echo starting tcpdump
 tcpdump -i any -n portrange 20000-30000 > tcpdump.out 2>&1 &

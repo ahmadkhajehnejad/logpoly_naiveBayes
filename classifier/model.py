@@ -48,8 +48,13 @@ class NaiveBayesClassifier:
         self.features_info = features_info
         self.density_estimators = None
         self.classes = self.features_info[-1]['classes']
+        self.logprob_classes = []
 
     def fit(self, data, labels):
+
+        for c in self.classes:
+            self.logprob_classes.append(np.log(np.sum(labels == c)) - np.log(labels.size))
+
         self.density_estimators = [[None for _ in range(len(self.features_info)-1)] for _ in self.classes]
 
         if config.classifier.multiprocessing:
@@ -133,7 +138,7 @@ class NaiveBayesClassifier:
         return log_likelihood_per_class
 
     def label(self, data):
-        log_likelihood_per_class = self.get_log_likelihood_per_class(data)
+        log_likelihood_per_class = self.get_log_likelihood_per_class(data) + np.tile(self.logprob_classes, [data.shape[0], 1])
         predicted_labels = np.argmax(log_likelihood_per_class, axis=1)
         return self.classes[predicted_labels]
 

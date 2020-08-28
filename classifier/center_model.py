@@ -121,9 +121,10 @@ class NaiveBayesClassifier:
             log_likelihood_per_dim = np.zeros([data.shape[0], len(self.features_info) - 1])
             for i in range(len(self.features_info) - 1):
                 if self.features_info[i]['feature_type'] == config.general.CONTINUOUS_FEATURE:
-                    scaled_data = logpoly.tools.scale_data(data[:, i], self.features_info[i]['min_value'],
-                                                           self.features_info[i]['max_value'])
-                    log_likelihood_per_dim[:, i] = self.density_estimators[c_index][i].logpdf(scaled_data)
+                    # scaled_data = logpoly.tools.scale_data(data[:, i], self.features_info[i]['min_value'],
+                    #                                        self.features_info[i]['max_value'])
+                    # log_likelihood_per_dim[:, i] = self.density_estimators[c_index][i].logpdf(scaled_data)
+                    log_likelihood_per_dim[:, i] = self.density_estimators[c_index][i].logpdf(data)
                 else:
                     log_likelihood_per_dim[:, i] = self.density_estimators[c_index][i].logpdf(data[:, i])
             log_likelihood_per_class[:, c_index] = np.sum(log_likelihood_per_dim, axis=1)

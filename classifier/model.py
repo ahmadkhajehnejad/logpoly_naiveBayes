@@ -4,6 +4,7 @@ from logpoly.model import LogpolyModelSelector
 from categorical.model import CategoricalDensityEstimator
 from kernel_density_estimation.model import KDE, select_KDE_model
 from Gaussian_mixture_model.model import select_GMM_model
+from Gaussian_model.model import GaussianModel
 import config.classifier
 import config.general
 import config.kde
@@ -29,6 +30,8 @@ def fit_thread_func(shared_space, data, feature_info, c_index, i):
             shared_space.put([c_index, i, select_KDE_model(scaled_data, config.kde.list_of_bandwidths)])
         elif config.classifier.continuous_density_estimator == 'gmm':
             shared_space.put([c_index, i, select_GMM_model(scaled_data, config.gmm.list_of_num_components)])
+        elif config.classifier.continuous_density_estimator == 'Gaussian':
+            shared_space.put([c_index, i, GaussianModel(scaled_data)])
 
     elif feature_info['feature_type'] == config.general.CATEGORICAL_FEATURE:
         shared_space.put([c_index, i, CategoricalDensityEstimator(data, feature_info['categories'])])
@@ -45,8 +48,13 @@ class NaiveBayesClassifier:
         self.features_info = features_info
         self.density_estimators = None
         self.classes = self.features_info[-1]['classes']
+        self.logprob_classes = []
 
     def fit(self, data, labels):
+
+        for c in self.classes:
+            self.logprob_classes.append(np.log(np.sum(labels == c)) - np.log(labels.size))
+
         self.density_estimators = [[None for _ in range(len(self.features_info)-1)] for _ in self.classes]
 
         if config.classifier.multiprocessing:
@@ -130,7 +138,7 @@ class NaiveBayesClassifier:
         return log_likelihood_per_class
 
     def label(self, data):
-        log_likelihood_per_class = self.get_log_likelihood_per_class(data)
+        log_likelihood_per_class = self.get_log_likelihood_per_class(data) + np.tile(self.logprob_classes, [data.shape[0], 1])
         predicted_labels = np.argmax(log_likelihood_per_class, axis=1)
         return self.classes[predicted_labels]
 

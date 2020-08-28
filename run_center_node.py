@@ -13,7 +13,7 @@ if __name__ == '__main__':
 
     send_msg(client_nodes_address, ['close'], 0)
 
-    # score = scorer(classifier, data_test, labels_test)
-    # print('\ntest score:  ', score)
+    score = scorer(classifier, data_test, labels_test)
+    print('\ntest score:  ', score)
 
 

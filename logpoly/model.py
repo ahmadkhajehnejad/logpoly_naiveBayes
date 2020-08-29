@@ -1,4 +1,4 @@
-from .tools import mp_compute_poly, mp_log_integral_exp, mp_compute_SS, mp_integral, mp_moments
+from .tools import mp_compute_poly, mp_log_integral_exp, mp_compute_SS, mp_moments # , mp_integral
 import config.logpoly
 import config.general
 import numpy as np
@@ -10,11 +10,13 @@ import scipy.integrate as integrate
 # import os
 # import matplotlib.pyplot as plt
 import sys
+import logpoly
 
 class Logpoly:
 
-    def __init__(self):
-        pass
+    def __init__(self, min_unscaled_value, max_unscaled_value):
+        self.min_unscaled_value = min_unscaled_value
+        self.max_unscaled_value = max_unscaled_value
 
 
     def fit(self, SS, n, constant_bias = 1, plot=False):
@@ -154,16 +156,26 @@ class LogpolyModelSelector:
         self.list_factor_degrees = list_factor_degrees
 
     def select_model(self, data):
+
+        if config.logpoly.single_scale:
+            min_value = None
+            max_value = None
+            scaled_data = data
+        else:
+            min_value = np.min(data)
+            max_value = np.max(data)
+            scaled_data = logpoly.tools.scale_data(data, min_value, max_value)
+
         n_total = data.shape[0]
 
         if len(self.list_factor_degrees) == 1:
-            SS = mp_compute_SS(data, self.list_factor_degrees[0])
-            logpoly_model = Logpoly()
+            SS = mp_compute_SS(scaled_data, self.list_factor_degrees[0])
+            logpoly_model = Logpoly(min_value, max_value)
             logpoly_model.fit(SS,n_total)
             return logpoly_model
 
         if config.classifier.smart_validation:
-            ind = np.argsort(data)
+            ind = np.argsort(scaled_data)
         else:
             ind = np.arange(n_total)
         index_train, index_validation = get_train_and_validation_index(ind)
@@ -171,16 +183,16 @@ class LogpolyModelSelector:
 
         avg_log_likelihoods = []
         logpoly_models = []
-        SS = mp_compute_SS(data[index_train], np.max(self.list_factor_degrees))
+        SS = mp_compute_SS(scaled_data[index_train], np.max(self.list_factor_degrees))
         for i, k in enumerate(self.list_factor_degrees):
-            logpoly_models.append(Logpoly())
+            logpoly_models.append(Logpoly(min_value, max_value))
             logpoly_models[i].fit(SS[:k+1], n_train)
-            avg_log_likelihoods.append(np.mean(logpoly_models[i].logpdf(data[index_validation])))
+            avg_log_likelihoods.append(np.mean(logpoly_models[i].logpdf(scaled_data[index_validation])))
 
         best_index = np.argmax(avg_log_likelihoods)
         k = self.list_factor_degrees[best_index]
-        best_logpoly_model = Logpoly()
-        best_logpoly_model.fit(SS[:k+1] + mp_compute_SS(data[index_validation], k), n_total)
+        best_logpoly_model = Logpoly(min_value, max_value)
+        best_logpoly_model.fit(SS[:k+1] + mp_compute_SS(scaled_data[index_validation], k), n_total)
         return best_logpoly_model
 
 
@@ -203,3 +215,4 @@ def _compute_log_likelihood(SS, theta, n):
         print('_compute_log_likelihood finish')
         sys.stdout.flush()
     return ll, logZ, roots
+

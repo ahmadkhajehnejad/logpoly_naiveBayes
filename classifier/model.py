@@ -9,6 +9,7 @@ import config.classifier
 import config.general
 import config.kde
 import config.gmm
+import config.logpoly
 import numpy as np
 from multiprocessing import Process, Queue
 import gc
@@ -18,12 +19,15 @@ import sys
 def fit_thread_func(shared_space, data, feature_info, c_index, i):
     print(c_index, i)
     sys.stdout.flush()
-    scaled_data = logpoly.tools.scale_data(data, feature_info['min_value'],
-                                           feature_info['max_value'])
     if feature_info['feature_type'] == config.general.CONTINUOUS_FEATURE:
+        scaled_data = logpoly.tools.scale_data(data, feature_info['min_value'],
+                                               feature_info['max_value'])
         if config.classifier.continuous_density_estimator == 'logpoly':
             logpoly_model_selector = LogpolyModelSelector(config.logpoly.list_factor_degrees)
-            shared_space.put([c_index, i, logpoly_model_selector.select_model(scaled_data)])
+            if config.logpoly.single_scale:
+                shared_space.put([c_index, i, logpoly_model_selector.select_model(scaled_data)])
+            else:
+                shared_space.put([c_index, i, logpoly_model_selector.select_model(data)])
         elif config.classifier.continuous_density_estimator == 'kde':
             shared_space.put([c_index, i, KDE(scaled_data, bandwidth=None)])
         elif config.classifier.continuous_density_estimator == 'vkde':
@@ -103,7 +107,10 @@ class NaiveBayesClassifier:
 
                         if config.classifier.continuous_density_estimator == 'logpoly':
                             logpoly_model_selector = LogpolyModelSelector(config.logpoly.list_factor_degrees)
-                            self.density_estimators[c_index][i] = logpoly_model_selector.select_model(scaled_data)
+                            if config.logpoly.single_scale:
+                                self.density_estimators[c_index][i] = logpoly_model_selector.select_model(scaled_data)
+                            else:
+                                self.density_estimators[c_index][i] = logpoly_model_selector.select_model(data)
                         elif config.classifier.continuous_density_estimator == 'kde':
                             self.density_estimators[c_index][i] = KDE(scaled_data, bandwidth=None)
                         elif config.classifier.continuous_density_estimator == 'vkde':
@@ -129,9 +136,17 @@ class NaiveBayesClassifier:
             log_likelihood_per_dim = np.zeros([data.shape[0], len(self.features_info) - 1])
             for i in range(len(self.features_info) - 1):
                 if self.features_info[i]['feature_type'] == config.general.CONTINUOUS_FEATURE:
-                    scaled_data = logpoly.tools.scale_data(data[:, i], self.features_info[i]['min_value'],
-                                                           self.features_info[i]['max_value'])
-                    log_likelihood_per_dim[:, i] = self.density_estimators[c_index][i].logpdf(scaled_data)
+                    if config.classifier.continuous_density_estimator == 'logpoly' and not config.logpoly.single_scale:
+                        min_value = self.density_estimators[c_index][i].min_unscaled_value
+                        max_value = self.density_estimators[c_index][i].max_unscaled_value
+                        scaled_data = logpoly.tools.scale_data(data[:, i], min_value, max_value)
+                        scaled_data[scaled_data < config.logpoly.x_lbound] = config.logpoly.x_lbound
+                        scaled_data[scaled_data > config.logpoly.x_ubound] = config.logpoly.x_ubound
+                        log_likelihood_per_dim[:, i] = self.density_estimators[c_index][i].logpdf(scaled_data)
+                    else:
+                        scaled_data = logpoly.tools.scale_data(data[:, i], self.features_info[i]['min_value'],
+                                                               self.features_info[i]['max_value'])
+                        log_likelihood_per_dim[:, i] = self.density_estimators[c_index][i].logpdf(scaled_data)
                 else:
                     log_likelihood_per_dim[:, i] = self.density_estimators[c_index][i].logpdf(data[:, i])
             log_likelihood_per_class[:, c_index] = np.sum(log_likelihood_per_dim, axis=1)
@@ -208,3 +223,4 @@ def scorer(classifier, data, labels):
     print('     score:', score)
     sys.stdout.flush()
     return score
+

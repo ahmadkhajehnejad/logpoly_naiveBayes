@@ -56,8 +56,7 @@ class Logpoly:
             def func(x):
                 return (mpmath.exp(1) * np.ones(x.shape)) ** (mp_compute_poly(x, self.theta) - self.logZ)
 
-            tmp = mp_moments(func, 2*k+1, np.unique(np.concatenate([np.array([mpf(0)])])),
-                             config.logpoly.x_lbound, config.logpoly.x_ubound)
+            tmp = mp_moments(func, 2*k+1, config.logpoly.x_lbound, config.logpoly.x_ubound)
             ESS = mpmath.matrix(tmp[grad_dimensions] / (1 + config.logpoly.delta))
 
             H = mpmath.matrix(len(grad_dimensions))
@@ -148,7 +147,7 @@ class Logpoly:
     def logpdf(self, x):
         p = mp_compute_poly(x, self.theta)
         tmp = np.array( [ (a - self.logZ) for a in p ], dtype=float)
-        return np.log(np.exp(tmp) - delta)
+        return np.log(np.exp(tmp) - config.logpoly.delta)
 
 
 class LogpolyModelSelector:

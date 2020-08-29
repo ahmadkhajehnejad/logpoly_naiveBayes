@@ -10,3 +10,4 @@ theta_epsilon = 1e-10 # 0
 mp_log_integral_exp_parts = 100 # 200 #
 mp_integral_parts = 100 # 200 #
 verbose = False
+delta = 0.2

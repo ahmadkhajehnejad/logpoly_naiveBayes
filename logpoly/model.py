@@ -21,6 +21,12 @@ class Logpoly:
 
         k = SS.size - 1
 
+        n_delta = int(config.logpoly.delta * n)
+        x_delta = np.random.uniform(config.logpoly.x_lbound, config.logpoly.x_ubound, n_delta)
+
+        SS = SS + mp_compute_SS(x_delta, k)
+        n = n + n_delta
+
         self.theta = np.array([mpf(0) for i in range(k+1)])
         if constant_bias is None:
             self.theta[0] = mpf(1)
@@ -146,7 +152,14 @@ class Logpoly:
 
     def logpdf(self, x):
         p = mp_compute_poly(x, self.theta)
-        return np.array( [ (a - self.logZ) for a in p ], dtype=float)
+        lpdf = np.array( [ (a - self.logZ) for a in p ], dtype=float)
+        if config.logpoly.delta > 0:
+            f_delta = 1 / (config.logpoly.x_ubound - config.logpoly.x_lbound)
+            pdf = (np.exp(lpdf) - config.logpoly.delta * f_delta) / (1 - config.logpoly.delta)
+            pdf[pdf < 0] = 0
+            lpdf = np.log(l)
+        return lpdf
+
 
 
 class LogpolyModelSelector:

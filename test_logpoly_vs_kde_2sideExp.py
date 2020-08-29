@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from logpoly.model import Logpoly, _compute_log_likelihood, LogpolyModelSelector
+from logpoly.model import Logpoly, _compute_objective_function, LogpolyModelSelector
 from logpoly.tools import mp_compute_SS, scale_data
 import config.logpoly
 import config.classifier

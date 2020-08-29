@@ -1,4 +1,4 @@
-from .tools import mp_compute_poly, mp_log_integral_exp, mp_compute_SS, mp_moments # , mp_integral
+from .tools import mp_compute_poly, mp_log_integral_exp, mp_compute_SS, mp_moments
 import config.logpoly
 import config.general
 import numpy as np
@@ -38,7 +38,7 @@ class Logpoly:
                 sys.stdout.flush()
 
             if iteration == 0:
-                self.current_log_likelihood, self.logZ, roots = _compute_log_likelihood(SS, self.theta, n)
+                self.current_log_likelihood, self.logZ = _compute_objective_function(SS, self.theta, n)
 
             ## Compute sufficient statistics and constructing the gradient and the Hessian
 
@@ -56,14 +56,14 @@ class Logpoly:
             def func(x):
                 return (mpmath.exp(1) * np.ones(x.shape)) ** (mp_compute_poly(x, self.theta) - self.logZ)
 
-            tmp = mp_moments(func, 2*k+1, np.unique(np.concatenate([np.array([mpf(0)]), roots])),
+            tmp = mp_moments(func, 2*k+1, np.unique(np.concatenate([np.array([mpf(0)])])),
                              config.logpoly.x_lbound, config.logpoly.x_ubound)
-            ESS = mpmath.matrix(tmp[grad_dimensions])
+            ESS = mpmath.matrix(tmp[grad_dimensions] / (1 + config.logpoly.delta))
 
             H = mpmath.matrix(len(grad_dimensions))
             for i in range(len(grad_dimensions)):
                 for j in range(len(grad_dimensions)):
-                    H[i, j] = tmp[grad_dimensions[i]+grad_dimensions[j]]
+                    H[i, j] = tmp[grad_dimensions[i]+grad_dimensions[j]] / (1 + config.logpoly.delta)
 
             H = -n*( H - (ESS * ESS.transpose()) )
             grad = mpmath.matrix(SS[grad_dimensions]) - n*ESS
@@ -104,7 +104,7 @@ class Logpoly:
             alpha = 0.49; beta = 0.5
 
             while True:
-                tmp_log_likelihood, tmp_logZ, tmp_roots = _compute_log_likelihood(SS, self.theta + lam * delta_theta, n)
+                tmp_log_likelihood, tmp_logZ = _compute_objective_function(SS, self.theta + lam * delta_theta, n)
 
                 if tmp_log_likelihood < self.current_log_likelihood + alpha * lam * np.inner(grad, delta_theta_subset):
                     if config.logpoly.verbose:
@@ -123,7 +123,6 @@ class Logpoly:
             self.theta = self.theta + lam * delta_theta
             self.current_log_likelihood = tmp_log_likelihood
             self.logZ = tmp_logZ
-            roots = tmp_roots
 
             # print(self.theta)
             # sys.stdout.flush()
@@ -148,7 +147,8 @@ class Logpoly:
 
     def logpdf(self, x):
         p = mp_compute_poly(x, self.theta)
-        return np.array( [ (a - self.logZ) for a in p ], dtype=float)
+        tmp = np.array( [ (a - self.logZ) for a in p ], dtype=float)
+        return np.log(np.exp(tmp) - delta)
 
 
 class LogpolyModelSelector:
@@ -196,7 +196,7 @@ class LogpolyModelSelector:
         return best_logpoly_model
 
 
-def _compute_log_likelihood(SS, theta, n):
+def _compute_objective_function(SS, theta, n):
     if config.logpoly.verbose:
         print('_compute_log_likelihood start')
         sys.stdout.flush()
@@ -206,7 +206,7 @@ def _compute_log_likelihood(SS, theta, n):
     if config.logpoly.verbose:
         print('    compute_logZ start')
         sys.stdout.flush()
-    logZ, roots = mp_log_integral_exp( mp_compute_poly, theta)
+    logZ = mp_log_integral_exp( mp_compute_poly, theta) - np.log(1 + config.logpoly.delta)
     if config.logpoly.verbose:
         print('    compute_logZ finish')
         sys.stdout.flush()
@@ -214,5 +214,5 @@ def _compute_log_likelihood(SS, theta, n):
     if config.logpoly.verbose:
         print('_compute_log_likelihood finish')
         sys.stdout.flush()
-    return ll, logZ, roots
+    return ll, logZ
 

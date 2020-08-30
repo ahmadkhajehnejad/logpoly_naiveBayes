@@ -65,110 +65,39 @@ def mp_log_integral_exp( log_func, theta):
 
     x_lbound, x_ubound = config.logpoly.x_lbound, config.logpoly.x_ubound
 
-    k = theta.size - 1
-    derivative_poly_coeffs = np.flip(theta[1:] * np.arange(1,k+1))
+    p1 = mpf(x_lbound)
+    p2 = mpf(x_ubound)
+    l = p2 - p1
+    parts = config.logpoly.mp_log_integral_exp_parts
+    delta = l/parts
+    points = np.arange(p1,p2,delta)
+    if len(points) < parts + 1:
+        points = np.concatenate([points, [p2]])
 
-    if config.logpoly.verbose:
-        print('           poly_roots start')
-        sys.stdout.flush()
-    # r = np.roots(derivative_poly_coeffs)
-    # r = r.real[np.abs(r.imag) < 1e-10]
-    # r = np.unique(r[(r >= x_lbound) & (r <= x_ubound)])
-    # r = np.array([mpf(r_i) for r_i in r])
+    f = log_func(points, theta)
+    f = np.concatenate([f, f[1:-1]])
 
-    _tmp_ind = derivative_poly_coeffs != 0
-    if not np.any(_tmp_ind):
-        r = np.array([])
-    else:
-        derivative_poly_coeffs = derivative_poly_coeffs[np.argmax(_tmp_ind):]
-        r = mpmath.polyroots(derivative_poly_coeffs, maxsteps=500, extraprec=mpmath.mp.dps)
-        r = np.array([r_i for r_i in r if isinstance(r_i, mpf)])
-        r = np.unique(r[ (r >= x_lbound) & (r <= x_ubound)])
-
-    if config.logpoly.verbose:
-        print('           poly_roots finish')
-        sys.stdout.flush()
-
-    if r.size > 0:
-        br_points = np.unique(np.concatenate([np.array([mpf(x_lbound)]), r.reshape([-1]), np.array([mpf(x_ubound)])]))
-    else:
-        br_points = np.array([mpf(x_lbound), mpf(x_ubound)])
-
-    buff = np.array([mpf(0) for _ in range(br_points.size -1)])
-    for i in range(br_points.size - 1):
-        p1 = br_points[i]
-        p2 = br_points[i+1]
-        l = p2 - p1
-        parts = config.logpoly.mp_log_integral_exp_parts
-        delta = l/parts
-        points = np.arange(p1,p2,delta)
-        if len(points) < parts + 1:
-            points = np.concatenate([points, [p2]])
-
-        f = log_func(points, theta)
-        f = np.concatenate([f, f[1:-1]])
-
-        buff[i] = mp_log_sum_exp(f) + mpmath.log(l/parts) - mpmath.log(2)
-    return mp_log_sum_exp(buff), r
+    intg = mp_log_sum_exp(f) + mpmath.log(l/parts) - mpmath.log(2)
+    return intg
 
 
-def mp_integral(func, roots, x_lbound, x_ubound):
+def mp_moments(func, max_power, x_lbound, x_ubound):
 
-    roots = np.unique(roots[(roots >= x_lbound) & (roots <= x_ubound)])
+    buff = np.tile( np.array([mpf(0)]).reshape([1]), [max_power])
 
-    if roots.size > 0:
-        br_points = np.unique(np.concatenate([np.array([mpf(x_lbound)]), roots.reshape([-1]), np.array([mpf(x_ubound)])]))
-    else:
-        br_points = np.array([mpf(x_lbound), mpf(x_ubound)])
+    p1 = mpf(x_lbound)
+    p2 = mpf(x_ubound)
+    l = p2 - p1
+    parts = config.logpoly.mp_integral_parts
+    delta = l/parts
+    points = np.arange(p1, p2, delta)
+    if len(points) < parts + 1:
+        points = np.concatenate([points, [p2]])
 
-    buff = np.array([mpf(0) for _ in range(br_points.size -1)])
-    for i in range(br_points.size - 1):
-        # print('^', end='')
-        # sys.stdout.flush()
-        p1 = br_points[i]
-        p2 = br_points[i+1]
-        l = p2 - p1
-        parts = config.logpoly.mp_integral_parts
-        delta = l/parts
-        points = np.arange(p1, p2, delta)
-        if len(points) < parts + 1:
-            points = np.concatenate([points, [p2]])
+    f = func(points)
 
-        f = func(points)
-        f = np.concatenate([f, f[1:-1]])
-
-        buff[i] = np.sum(f) * (l/parts) / 2
-    return np.sum(buff)
-
-
-def mp_moments(func, max_power, roots, x_lbound, x_ubound):
-
-    roots = np.unique(roots[(roots >= x_lbound) & (roots <= x_ubound)])
-
-    if roots.size > 0:
-        br_points = np.unique(np.concatenate([np.array([mpf(x_lbound)]), roots.reshape([-1]), np.array([mpf(x_ubound)])]))
-    else:
-        br_points = np.array([mpf(x_lbound), mpf(x_ubound)])
-
-    buff = np.tile( np.array([mpf(0)]).reshape([1,1]), [max_power, br_points.size-1])
-
-    for i in range(br_points.size - 1):
-        # print('^', end='')
-        # sys.stdout.flush()
-        p1 = br_points[i]
-        p2 = br_points[i+1]
-        l = p2 - p1
-        parts = config.logpoly.mp_integral_parts
-        delta = l/parts
-        points = np.arange(p1, p2, delta)
-        if len(points) < parts + 1:
-            points = np.concatenate([points, [p2]])
-
-        f = func(points)
-
-        g = f
-        for j in range(max_power):
-            tmp = 2 * np.sum(g[1:-1]) + g[0] + g[-1]
-            buff[j,i] = tmp * (l/parts) / 2
-            g = points * g
-    return np.sum(buff, axis=1)
+    for j in range(max_power):
+        tmp = 2 * np.sum(f[1:-1]) + f[0] + f[-1]
+        buff[j] = tmp * (l/parts) / 2
+        f = points * f
+    return buff

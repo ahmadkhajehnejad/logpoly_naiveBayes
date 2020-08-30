@@ -1,6 +1,6 @@
-dataset_name = 'iot_botnet_attack_Danmini_Doorbell_11classes'
+dataset_name = 'HT_Sensor'
 folds_count = 5
 CONTINUOUS_FEATURE = 'c'
 CATEGORICAL_FEATURE = 'd'
-max_num_processes = 32
+max_num_processes = 30
 num_processes_per_garbage_collection = 1000000

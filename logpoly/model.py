@@ -1,4 +1,4 @@
-from .tools import mp_compute_poly, mp_log_integral_exp, mp_compute_SS, mp_integral, mp_moments
+from .tools import mp_compute_poly, mp_log_integral_exp, mp_compute_SS, mp_moments
 import config.logpoly
 import config.general
 import numpy as np
@@ -6,7 +6,6 @@ from tools import get_train_and_validation_index
 from mpmath import mp, mpf
 import mpmath
 import warnings
-import scipy.integrate as integrate
 # import os
 # import matplotlib.pyplot as plt
 import sys
@@ -21,7 +20,7 @@ class Logpoly:
 
         k = SS.size - 1
 
-        n_delta = int(config.logpoly.delta * n)
+        n_delta = int(config.logpoly.delta * n / (1 - config.logpoly.delta))
         x_delta = np.random.uniform(config.logpoly.x_lbound, config.logpoly.x_ubound, n_delta)
 
         SS = SS + mp_compute_SS(x_delta, k)
@@ -36,13 +35,14 @@ class Logpoly:
 
         for iteration in range(config.logpoly.Newton_max_iter):
 
+            print('      ', iteration)
             if config.logpoly.verbose:
                 print('.')
                 print('                                 iteration #', iteration)
                 sys.stdout.flush()
 
             if iteration == 0:
-                self.current_log_likelihood, self.logZ, roots = _compute_log_likelihood(SS, self.theta, n)
+                self.current_log_likelihood, self.logZ = _compute_log_likelihood(SS, self.theta, n)
 
             ## Compute sufficient statistics and constructing the gradient and the Hessian
 
@@ -60,8 +60,7 @@ class Logpoly:
             def func(x):
                 return (mpmath.exp(1) * np.ones(x.shape)) ** (mp_compute_poly(x, self.theta) - self.logZ)
 
-            tmp = mp_moments(func, 2*k+1, np.unique(np.concatenate([np.array([mpf(0)]), roots])),
-                             config.logpoly.x_lbound, config.logpoly.x_ubound)
+            tmp = mp_moments(func, 2*k+1, config.logpoly.x_lbound, config.logpoly.x_ubound)
             ESS = mpmath.matrix(tmp[grad_dimensions])
 
             H = mpmath.matrix(len(grad_dimensions))
@@ -108,7 +107,7 @@ class Logpoly:
             alpha = 0.49; beta = 0.5
 
             while True:
-                tmp_log_likelihood, tmp_logZ, tmp_roots = _compute_log_likelihood(SS, self.theta + lam * delta_theta, n)
+                tmp_log_likelihood, tmp_logZ = _compute_log_likelihood(SS, self.theta + lam * delta_theta, n)
 
                 if tmp_log_likelihood < self.current_log_likelihood + alpha * lam * np.inner(grad, delta_theta_subset):
                     if config.logpoly.verbose:
@@ -127,7 +126,6 @@ class Logpoly:
             self.theta = self.theta + lam * delta_theta
             self.current_log_likelihood = tmp_log_likelihood
             self.logZ = tmp_logZ
-            roots = tmp_roots
 
             # print(self.theta)
             # sys.stdout.flush()
@@ -156,8 +154,8 @@ class Logpoly:
         if config.logpoly.delta > 0:
             f_delta = 1 / (config.logpoly.x_ubound - config.logpoly.x_lbound)
             pdf = (np.exp(lpdf) - config.logpoly.delta * f_delta) / (1 - config.logpoly.delta)
-            pdf[pdf < 0] = 0
-            lpdf = np.log(l)
+            pdf[pdf < 0] = 0 # 1e-6
+            lpdf = np.log(pdf)
         return lpdf
 
 
@@ -207,7 +205,7 @@ def _compute_log_likelihood(SS, theta, n):
     if config.logpoly.verbose:
         print('    compute_logZ start')
         sys.stdout.flush()
-    logZ, roots = mp_log_integral_exp( mp_compute_poly, theta)
+    logZ = mp_log_integral_exp( mp_compute_poly, theta)
     if config.logpoly.verbose:
         print('    compute_logZ finish')
         sys.stdout.flush()
@@ -215,4 +213,4 @@ def _compute_log_likelihood(SS, theta, n):
     if config.logpoly.verbose:
         print('_compute_log_likelihood finish')
         sys.stdout.flush()
-    return ll, logZ, roots
+    return ll, logZ

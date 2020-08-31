@@ -1,7 +1,8 @@
 import config.general
 from config.client_nodes_address import client_nodes_address
 
-ROOT_FOLDER = './results_communication/kde-n10000/'
+# ROOT_FOLDER = './results_communication/kde-n10000/'
+ROOT_FOLDER = './'
 
 def load_valid_src_trg_pairts():
 
@@ -18,7 +19,7 @@ def load_valid_src_trg_pairts():
 
             parts = s.split()
 
-            src_adress = parts[2] + '.' + parts[4]
+            sanalyzie_communicated_variablesrc_adress = parts[2] + '.' + parts[4]
             trg_address = parts[6] + '.' + parts[8]
             valid_src_trg_pairs.update([(src_adress, trg_address)])
 
@@ -64,7 +65,7 @@ if __name__ == '__main__':
             non_empty_packet_count += 1
 
     print('     total sent bytes to clients: ', total_sent_bytes)
-    print('total receivd bytes from clients: ', total_received_bytes)
+    print('total received bytes from clients: ', total_received_bytes)
     print('                             sum: ', total_sent_bytes + total_received_bytes)
     print('          packet count: ', packet_count)
     print('non-empty packet count: ', non_empty_packet_count)
